@@ -22,6 +22,7 @@ class Handler(server.BaseHTTPRequestHandler):
 
 		self.wfile.write(bytes(json.dumps(self.recognize_command(json_data_obj)), 'utf-8'))
 
+	# TODO: try use **kwargs
 	def recognize_command(self, content):
 		json_data_obj = dict()
 		if 'make_file' in content:
