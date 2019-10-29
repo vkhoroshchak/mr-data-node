@@ -7,24 +7,26 @@ import requests
 
 from receive_commands.receive_commands import hash_f, make_file
 
+
 # TODO: use context managers
 # TODO: simplify dict use
 class ShuffleCommand:
     def __init__(self, data, file_path):
-        self._data = {}
-        self._data['data_node_ip'] = data['data_node_ip']
-        self._data['content'] = data['content']
-        self._data['file_path'] = file_path
+        self._data = {
+            'data_node_ip': data['data_node_ip'],
+            'content': data['content'],
+            'file_path': file_path
+        }
 
     def send(self):
-        data = {}
-        data['finish_shuffle'] = {}
-        data['finish_shuffle']['content'] = self._data['content']
-        data['finish_shuffle']['file_path'] = self._data['file_path']
+        data = {
+            'finish_shuffle': {
+                'content': self._data['content'],
+                'file_path': self._data['file_path']
+            }
+        }
 
-        response = requests.post \
-            ('http://' + self._data['data_node_ip'],
-             data=json.dumps(data))
+        response = requests.post('http://' + self._data['data_node_ip'], data=json.dumps(data))
         response.raise_for_status()
         return response.json()
 

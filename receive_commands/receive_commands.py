@@ -6,22 +6,19 @@ File where data node receives requests from management node about:
 4) reduce() method start
 5) request to return a status(if works) and file size
 """
-# TODO: check imports order
 # TODO: create config for string literals
 # TODO: use context manager
 # TODO: use literals
-import os
+import base64
 import json
+import os
 import requests
 import shutil
-import base64
 
 
-def hash_f(str):
+def hash_f(string):
     res = 545
-    for i in str:
-        res += ord(i)
-    return res
+    return sum([res + ord(i) for i in string])
 
 
 def create_dest_file(file_name):
@@ -53,9 +50,8 @@ def write(content):
     folder_name_arr = dir_name.split(".")
     folder_name = folder_name_arr[0] + "_folder." + folder_name_arr[-1]
     path = os.path.join(os.path.dirname(__file__), '..', 'data', folder_name, new_dir_name, file_name)
-    f = open(path, 'w+')
-    f.writelines(content['segment'])
-    f.close()
+    with open(path, 'w+') as f:
+        f.writelines(content['segment'])
 
 
 def reduce(content):
@@ -71,9 +67,8 @@ def reduce(content):
         os.path.join(os.path.dirname(__file__), '..', 'data', folder_name, src_dir_name, 'shuffled')).readlines()
     exec(rds)
     result = locals()['custom_reducer'](shuffle_content, kd)
-    f = open(os.path.join(os.path.dirname(__file__), '..', 'data', dest), 'w+')
-    f.writelines(result)
-    f.close()
+    with open(os.path.join(os.path.dirname(__file__), '..', 'data', dest), 'w+') as f:
+        f.writelines(result)
     return result
 
 
@@ -98,17 +93,17 @@ def map(content):
             content = open(os.path.join('data', folder_name, dir_name, file)).readlines()
             exec(decoded_mapper)
             res = locals()['custom_mapper'](content, field_delimiter, key)
-            f = open(os.path.join(os.path.dirname(__file__), '..', 'data', folder_name, new_dir_name, file), 'w+')
-            f.writelines(res)
-            f.close()
+            with open(os.path.join(os.path.dirname(__file__), '..', 'data', folder_name, new_dir_name, file),
+                      'w+') as f:
+                f.writelines(res)
         return new_dir_name
     else:
         content = open(os.path.join('data', content['server_src'])).readlines()
         exec(decoded_mapper)
         res = locals()['custom_mapper'](content, field_delimiter, key)
-        f = open(os.path.join(os.path.dirname(__file__), '..', 'data', folder_name, new_dir_name, new_dir_name), 'w+')
-        f.writelines(res)
-        f.close()
+        with open(os.path.join(os.path.dirname(__file__), '..', 'data', folder_name, new_dir_name, new_dir_name),
+                  'w+') as f:
+            f.writelines(res)
         return new_dir_name
 
 
@@ -117,24 +112,19 @@ def hash_keys(content):
     folder_name_arr = dir_name.split(".")
     folder_name = folder_name_arr[0].split("_")[0] + "_folder." + folder_name_arr[1]
     path = os.path.join(os.path.dirname(__file__), '..', 'data', folder_name, dir_name)
-    files = []
-    hash_key_list = list()
     # r=root, d=directories, f = files
-    for r, d, f in os.walk(path):
-        for file in f:
-            files.append(os.path.join(r, file))
-    for f in files:
-        for line in open(f):
-            hash_key_list.append(hash_f(line.split('^')[0]))
+    files = [os.path.join(r, file) for r, d, f in os.walk(path) for file in f]
+    hash_key_list = [hash_f(line.split('^')[0]) for f in files for line in open(f)]
     return hash_key_list
 
 
 def min_max_hash(hash_key_list, file_name):
     arbiter_node_json_data = open(os.path.join('config', 'data_node_info.json'))
     arbiter_node_data = json.load(arbiter_node_json_data)['arbiter_address']
-    res = list()
-    res.append(max(hash_key_list))
-    res.append(min(hash_key_list))
+    res = [
+        max(hash_key_list),
+        min(hash_key_list)
+    ]
     url = 'http://' + arbiter_node_data
     diction = {
         'hash':
@@ -155,9 +145,8 @@ def finish_shuffle(content):
     full_dir_name = os.path.join(os.path.dirname(__file__), '..', 'data', folder_name, dir_name)
     if not os.path.isfile(full_dir_name):
         make_file(full_dir_name)
-    f = open(os.path.join(os.path.dirname(__file__), '..', 'data', folder_name, dir_name, 'shuffled'), 'a+')
-    f.writelines(data['content'])
-    f.close()
+    with open(os.path.join(os.path.dirname(__file__), '..', 'data', folder_name, dir_name, 'shuffled'), 'a+') as f:
+        f.writelines(data['content'])
 
 
 def clear_data(content):
@@ -182,6 +171,7 @@ def get_file(content):
     data = open(path).read()
     return data
 
+
 # TODO: remove hard code
 def get_result_of_key(content):
     file_name = content['get_result_of_key']['file_name'].split(os.sep)[-1]
@@ -189,7 +179,7 @@ def get_result_of_key(content):
     field_delimiter = content['get_result_of_key']['field_delimiter']
     dir_name = file_name.split('.')[0] + '_folder.' + file_name.split('.')[1]
     path = os.path.join(os.path.dirname(__file__), '..', 'data', file_name)
-    file = open(path)
-    for line in file.readlines():
-        if line.split('^')[0] == key:
-            return line
+    with open(path) as file:
+        for line in file.readlines():
+            if line.split('^')[0] == key:
+                return line
