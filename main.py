@@ -36,6 +36,12 @@ def write():
     return jsonify(success=True)
 
 
+@app.route("/command/map", methods=["POST"])
+def map():
+    response = {'mapped_folder_name': cmd.map(request.json)}
+    return jsonify(response)
+
+
 def recognize_command(self, content):
     json_data_obj = {}
     if "make_file" in content:

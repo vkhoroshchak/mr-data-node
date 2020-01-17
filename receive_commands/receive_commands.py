@@ -154,21 +154,18 @@ class Command:
     @staticmethod
     def min_max_hash(hash_key_list, file_name):
         with open(os.path.join('config', 'data_node_info.json')) as f:
-            arbiter_node_data = json.load(f)['arbiter_address']
+            arbiter_address = json.load(f)['arbiter_address']
 
         res = [
             max(hash_key_list),
             min(hash_key_list)
         ]
-        url = 'http://' + arbiter_node_data
+        url = f'http://{arbiter_address}/command/hash'
         diction = {
-            'hash':
-                {
-                    'list_keys': res,
-                    'file_name': file_name
-                }
+            'list_keys': res,
+            'file_name': file_name
         }
-        response = requests.post(url, data=json.dumps(diction))
+        response = requests.post(url, json=diction)
         return response.json()
 
     @staticmethod
