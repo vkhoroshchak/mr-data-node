@@ -59,7 +59,8 @@ def shuffle(content):
     for i in content['nodes_keys']:
         result['shuffle_items'].append({'data_node_ip': i['data_node_ip'], 'content': []})
     # r=root, d=directories, f = files
-    for r, d, f in os.walk(os.path.join(os.path.dirname(__file__), '..', 'data', folder_name, dir_name)):
+    for r, d, f in os.walk(
+            os.path.join(os.path.dirname(__file__), '..', config['data_folder_name'], folder_name, dir_name)):
         for file in f:
             files.append(os.path.join(r, file))
 
@@ -82,8 +83,10 @@ def shuffle(content):
 
     for i in result['shuffle_items']:
         if i['data_node_ip'] == self_node_ip:
-            with open(os.path.join(os.path.dirname(__file__), '..', 'data', folder_name, new_dir_name, 'shuffled'),
-                      'a+') as f:
+            with open(
+                    os.path.join(os.path.dirname(__file__), '..', config['data_folder_name'], folder_name, new_dir_name,
+                                 'shuffled'),
+                    'a+') as f:
                 f.writelines(i['content'])
         else:
             sc = ShuffleCommand(i, new_dir_name)
