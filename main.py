@@ -30,6 +30,12 @@ def make_file():
     return jsonify(success=True)
 
 
+@app.route("/command/write", methods=["POST"])
+def write():
+    cmd.write(request.json)
+    return jsonify(success=True)
+
+
 def recognize_command(self, content):
     json_data_obj = {}
     if "make_file" in content:
