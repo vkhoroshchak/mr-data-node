@@ -67,6 +67,13 @@ def clear_data():
     return jsonify(success=True)
 
 
+@app.route("/command/reduce", methods=["POST"])
+def reduce():
+    cmd.reduce(request.json)
+
+    return jsonify(success=True)
+
+
 def recognize_command(self, content):
     json_data_obj = {}
     if "make_file" in content:

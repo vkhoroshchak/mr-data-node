@@ -96,7 +96,6 @@ class Command:
         result = locals()['custom_reducer'](shuffle_content, key_delimiter)
         with open(os.path.join(os.path.dirname(__file__), '..', Command.data_folder_name, dest), 'w+') as f:
             f.writelines(result)
-        return result
 
     @staticmethod
     def finish_shuffle(content):
