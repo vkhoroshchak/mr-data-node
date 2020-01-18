@@ -101,7 +101,7 @@ class Command:
     @staticmethod
     def finish_shuffle(content):
 
-        data = content['finish_shuffle']
+        data = content
         dir_name = data['file_path']
 
         full_dir_name = os.path.join(os.path.dirname(__file__), '..', Command.data_folder_name, Command.folder_name,
@@ -166,7 +166,7 @@ class Command:
             'file_name': file_name
         }
         response = requests.post(url, json=diction)
-        return response.json()
+        return response
 
     @staticmethod
     def clear_data(content):

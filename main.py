@@ -2,7 +2,7 @@ from http import server
 import json
 from multiprocessing import Process
 from receive_commands.receive_commands import Command as cmd
-from http_communication import shuffle
+from http_communication import shuffle as sf
 from flask import Flask, jsonify, request, make_response
 import base64
 import json
@@ -14,11 +14,6 @@ with open(os.path.join(os.path.dirname(__file__), "config", "config.json")) as c
     config = json.load(config_file)
 
 app = Flask(__name__)
-
-
-@app.route("/command/shuffle", methods=["POST"])
-def shuffle():
-    shuffle.shuffle(request.json)
 
 
 @app.route("/command/make_file", methods=["POST"])
@@ -40,6 +35,28 @@ def write():
 def map():
     response = {'mapped_folder_name': cmd.map(request.json)}
     return jsonify(response)
+
+
+@app.route("/command/shuffle", methods=["POST"])
+def shuffle():
+    sf.shuffle(request.json)
+    return jsonify(success=True)
+
+
+@app.route("/command/finish_shuffle", methods=["POST"])
+def finish_shuffle():
+    cmd.finish_shuffle(request.json)
+    return jsonify(success=True)
+
+
+@app.route("/command/min_max_hash", methods=["POST"])
+def min_max_hash():
+    print(request.json)
+    file_name = request.json['source_file']
+    print(file_name)
+    cmd.min_max_hash(cmd.hash_keys(file_name), file_name)
+
+    return jsonify(success=True)
 
 
 def recognize_command(self, content):

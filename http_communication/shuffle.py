@@ -14,7 +14,6 @@ with open(os.path.join('config', 'data_node_info.json')) as arbiter_node_json_da
     self_node_ip = json.load(arbiter_node_json_data)['self_address']
 
 
-# TODO: use context managers
 # TODO: simplify dict use
 class ShuffleCommand:
     def __init__(self, data, file_path):
@@ -26,27 +25,20 @@ class ShuffleCommand:
 
     def send(self):
         data = {
-            'finish_shuffle': {
                 'content': self._data['content'],
                 'file_path': self._data['file_path']
-            }
         }
-
-        response = requests.post('http://' + self._data['data_node_ip'], data=json.dumps(data))
-        response.raise_for_status()
-        return response.json()
+        url = f'http://{self._data["data_node_ip"]}/command/finish_shuffle'
+        response = requests.post(url, json=data)
+        return response
 
 
 # TODO: refactor
 def shuffle(content):
-    print(content['file_name'])
+    print(content)
     dir_name = content['file_name'].split(os.sep)[-1]
-    print(dir_name)
     files = []
-    result = {
-        'shuffle_items': [
-        ]
-    }
+    result = {'shuffle_items': []}
 
     folder_name = os.path.splitext(dir_name)[0].split(config['name_delimiter'])[0] + config['name_delimiter'] + config[
         'folder_name'] + os.path.splitext(dir_name)[1]
