@@ -59,6 +59,14 @@ def min_max_hash():
     return jsonify(success=True)
 
 
+@app.route("/command/clear_data", methods=["POST"])
+def clear_data():
+    cmd.init_folder_variables(request.json["folder_name"])
+    cmd.clear_data(request.json)
+
+    return jsonify(success=True)
+
+
 def recognize_command(self, content):
     json_data_obj = {}
     if "make_file" in content:

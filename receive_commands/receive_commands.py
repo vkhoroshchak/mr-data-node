@@ -171,7 +171,7 @@ class Command:
     @staticmethod
     def clear_data(content):
 
-        data = content['clear_data']
+        data = content
         folder_name = data['folder_name']
         remove_all = data['remove_all_data']
 
