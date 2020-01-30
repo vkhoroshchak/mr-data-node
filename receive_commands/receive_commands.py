@@ -11,6 +11,8 @@ import json
 import os
 import requests
 import shutil
+import pandas as pd
+import moz_sql_parser as sp
 
 with open(os.path.join(os.path.dirname(__file__), '..', 'config', 'config.json')) as config_file:
     config = json.load(config_file)
@@ -82,20 +84,27 @@ class Command:
 
     @staticmethod
     def reduce(content):
-
         reducer = base64.b64decode(content['reducer'])
         key_delimiter = content['key_delimiter']
         dest = content['destination_file']
-        dir_name = os.path.join(Command.data_folder_name, dest)
+        sql_query = content['sql_query']
 
-        with open(os.path.join(os.path.dirname(__file__), '..', 'data', Command.folder_name,
-                               Command.shuffled_fragments_folder_name, 'shuffled')) as f:
-            shuffle_content = f.readlines()
+        parsed_sql = json.dumps(sp.parse(sql_query))
+        json_res = json.loads(parsed_sql)
+        s = Command.select_parser(json_res)
+        f = Command.from_parser(json_res)
 
-        exec(reducer)
-        result = locals()['custom_reducer'](shuffle_content, key_delimiter)
-        with open(os.path.join(os.path.dirname(__file__), '..', Command.data_folder_name, dest), 'w+') as f:
-            f.writelines(result)
+        for file in os.listdir(
+                os.path.join(os.path.dirname(__file__), '..', Command.data_folder_name, Command.folder_name,
+                             Command.mapped_fragments_folder_name)
+        ):
+            content = pd.read_csv(
+                os.path.join(os.path.dirname(__file__), '..', Command.data_folder_name, Command.folder_name,
+                             Command.mapped_fragments_folder_name, file))
+
+            exec(reducer)
+            result = locals()['custom_reducer'](content, s, ['Track Name'])
+            result.to_csv(os.path.join(os.path.dirname(__file__), '..', Command.data_folder_name, dest),index=False)
 
     @staticmethod
     def finish_shuffle(content):
@@ -113,41 +122,47 @@ class Command:
 
     @staticmethod
     def map(content):
-
         dest = content['destination_file']
         mapper = content['mapper']
         field_delimiter = content['field_delimiter']
         key_delimiter = content['key_delimiter']
+        sql_query = content['sql_query']
 
         dir_name = os.path.join(Command.data_folder_name, dest)
         folder_name = dir_name.split(os.sep)
 
         Command.make_file(Command.folder_name + os.sep + Command.mapped_fragments_folder_name)
         decoded_mapper = base64.b64decode(mapper)
+        print(sql_query)
+        print(type(sp.parse(sql_query)))
+        print(sp.parse(sql_query))
+        parsed_sql = json.dumps(sp.parse(sql_query))
+        json_res = json.loads(parsed_sql)
+        s = Command.select_parser(json_res)
+        f = Command.from_parser(json_res)
 
         if 'server_src' not in content:
 
             for file in os.listdir(
                     Command.data_folder_name + os.sep + Command.folder_name + os.sep + Command.fragments_folder_name):
-                content = open(
+                content = pd.read_csv(
                     os.path.join(Command.data_folder_name, Command.folder_name, Command.fragments_folder_name,
-                                 file)).readlines()
+                                 file))
                 exec(decoded_mapper)
-                res = locals()['custom_mapper'](content, field_delimiter, key_delimiter)
-                with open(
-                        os.path.join(os.path.dirname(__file__), '..', Command.data_folder_name, Command.folder_name,
-                                     Command.mapped_fragments_folder_name, file),
-                        'w+') as f:
-                    f.writelines(res)
+                res = locals()['custom_mapper'](content, s)
+
+                res.to_csv(os.path.join(os.path.dirname(__file__), '..', Command.data_folder_name, Command.folder_name,
+                                        Command.mapped_fragments_folder_name, file), index=False)
             return Command.mapped_fragments_folder_name
         else:
-            content = open(os.path.join(Command.data_folder_name, content['server_src'])).readlines()
+            content = pd.read_csv(os.path.join(Command.data_folder_name, content['server_src']))
             exec(decoded_mapper)
-            res = locals()['custom_mapper'](content, field_delimiter, key_delimiter)
-            with open(os.path.join(os.path.dirname(__file__), '..', Command.data_folder_name, Command.folder_name,
-                                   Command.mapped_fragments_folder_name, Command.mapped_fragments_folder_name),
-                      'w+') as f:
-                f.writelines(res)
+            res = locals()['custom_mapper'](content, s)
+
+            res.to_csv(os.path.join(os.path.dirname(__file__), '..', Command.data_folder_name, Command.folder_name,
+                                    Command.mapped_fragments_folder_name, Command.mapped_fragments_folder_name),
+                       index=False)
+
             return Command.mapped_fragments_folder_name
 
     @staticmethod
@@ -202,3 +217,76 @@ class Command:
             for line in file.readlines():
                 if line.split('^')[0] == key:
                     return line
+
+    @staticmethod
+    def select_parser(data):
+        select_data = data['select']
+        res = []
+        for i in select_data:
+            item_dict = {}
+            if type(i['value']) is not dict:
+                item_dict['old_name'] = i['value']
+                if 'name' in i.keys():
+                    item_dict['new_name'] = i['name']
+                else:
+                    item_dict['new_name'] = i['value']
+            elif 'literal' in i['value'].keys():
+                item_dict['old_name'] = i['value']['literal']
+                if 'name' in i.keys():
+                    item_dict['new_name'] = i['name']
+                else:
+                    item_dict['new_name'] = i['value']['literal']
+            elif 'sum' in i['value'].keys():
+                item_dict = Command.parse_aggregation_value('sum', i)
+
+            elif 'min' in i['value'].keys():
+                item_dict = Command.parse_aggregation_value('min', i)
+            elif 'max' in i['value'].keys():
+                item_dict = Command.parse_aggregation_value('max', i)
+            elif 'avg' in i['value'].keys():
+                item_dict = Command.parse_aggregation_value('avg', i)
+            elif 'count' in i['value'].keys():
+                item_dict = Command.parse_aggregation_value('count', i)
+
+            res.append(item_dict)
+
+        return res
+
+    @staticmethod
+    def from_parser(data):
+        res = {}
+        if type(data['from']) is not dict:
+            res['file_name'] = data['from']
+        return res
+
+    @staticmethod
+    def parse_aggregation_value(name, data):
+        res = {'old_name': data['value'][name]}
+        if 'name' in data.keys():
+            res['new_name'] = f"{data['name']}"
+        else:
+            res['new_name'] = f"{name.upper()}_{data['value'][name]}"
+        res['aggregate_f_name'] = name
+        return res
+
+    @staticmethod
+    def map_pd(data_frame, col_names):
+        old_names = []
+        new_names = []
+        for i in col_names:
+            old_names.append(i['old_name'])
+            new_names.append(i['new_name'])
+
+        res = data_frame[old_names].copy()
+        res.columns = new_names
+        res.to_csv('mapped_csv_data.csv', index=False)
+        return res
+
+    @staticmethod
+    def reduce_pd(data_frame, col_names, groupby_cols):
+        for i in col_names:
+            if 'aggregate_f_name' in i.keys():
+                data_frame[i['new_name']] = data_frame.groupby(groupby_cols)[i['new_name']].transform(
+                    i['aggregate_f_name'])
+        res = data_frame.drop_duplicates(groupby_cols)
+        res.to_csv('reduced_csv.csv', index=False)
