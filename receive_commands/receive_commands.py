@@ -60,7 +60,7 @@ class Command:
         file_name = content['file_name'].split(os.sep)[-1]
         path = os.path.join(os.path.dirname(__file__), '..', Command.data_folder_name, Command.folder_name,
                             Command.fragments_folder_name, file_name)
-        with open(path, 'w+') as f:
+        with open(path, 'w+', encoding='utf-8') as f:
             f.writelines(content['segment'])
 
     @staticmethod
