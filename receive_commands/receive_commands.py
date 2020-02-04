@@ -67,19 +67,26 @@ class Command:
 
     @staticmethod
     def hash_f(string):
+        if type(string) is not str:
+            string = str(string)
         res = 545
         return sum([res + ord(i) for i in string])
 
     @staticmethod
-    def hash_keys(content):
-
+    def hash_keys(content, group_by_key):
         dir_name = content.split(os.sep)[-1]
 
         path = os.path.join(os.path.dirname(__file__), '..', Command.data_folder_name, Command.folder_name, dir_name)
 
         # r=root, d=directories, f = files
         files = [os.path.join(r, file) for r, d, f in os.walk(path) for file in f]
-        hash_key_list = [Command.hash_f(line.split('^')[0]) for f in files for line in open(f)]
+        hash_key_list = []
+        for f in files:
+            data_f = pd.read_csv(f)
+
+            for j in data_f.loc[:, group_by_key['key_name']]:
+                hash_key_list.append(Command.hash_f(j))
+
         return hash_key_list
 
     @staticmethod
@@ -93,22 +100,28 @@ class Command:
         json_res = json.loads(parsed_sql)
         s = Command.select_parser(json_res)
         f = Command.from_parser(json_res)
+        gb = Command.group_by_parser(json_res)
 
-        for file in os.listdir(
-                os.path.join(os.path.dirname(__file__), '..', Command.data_folder_name, Command.folder_name,
-                             Command.mapped_fragments_folder_name)
-        ):
-            content = pd.read_csv(
-                os.path.join(os.path.dirname(__file__), '..', Command.data_folder_name, Command.folder_name,
-                             Command.mapped_fragments_folder_name, file))
+        data_frame = pd.read_csv(
+            os.path.join(os.path.dirname(__file__), '..', Command.data_folder_name, Command.folder_name,
+                         Command.shuffled_fragments_folder_name, 'shuffled.csv'))
 
-            exec(reducer)
-            result = locals()['custom_reducer'](content, s, ['Track Name'])
-            result.to_csv(os.path.join(os.path.dirname(__file__), '..', Command.data_folder_name, dest),index=False)
+        exec(reducer)
+        for i in gb:
+            data_frame = locals()['custom_reducer'](data_frame, s, i['key_name'])
+
+        data_frame.to_csv(os.path.join(os.path.dirname(__file__), '..', Command.data_folder_name, dest), index=False)
 
     @staticmethod
     def finish_shuffle(content):
-
+        folder_name = config['name_delimiter'].join(
+            os.path.splitext(dir_name)[0].split(config['name_delimiter'])[:-1]) + \
+                      config['name_delimiter'] + config[
+                          'folder_name'] + os.path.splitext(dir_name)[1]
+        new_dir_name = config['name_delimiter'].join(
+            os.path.splitext(dir_name)[0].split(config['name_delimiter'])[:-1]) + \
+                       config['name_delimiter'] + config[
+                           'shuffled_fragments_folder_name'] + os.path.splitext(dir_name)[1]
         data = content
         dir_name = data['file_path']
 
@@ -116,9 +129,9 @@ class Command:
                                      dir_name)
         if not os.path.isfile(full_dir_name):
             Command.make_file(full_dir_name)
-        with open(os.path.join(os.path.dirname(__file__), '..', Command.data_folder_name, Command.folder_name, dir_name,
-                               'shuffled'), 'a+') as f:
-            f.writelines(data['content'])
+        data['content'].to_csv(
+            os.path.join(os.path.dirname(__file__), '..', config['data_folder_name'], folder_name, new_dir_name,
+                         'shuffled.csv'), encoding='utf-8', index=False)
 
     @staticmethod
     def map(content):
@@ -133,24 +146,18 @@ class Command:
 
         Command.make_file(Command.folder_name + os.sep + Command.mapped_fragments_folder_name)
         decoded_mapper = base64.b64decode(mapper)
-        print(sql_query)
-        print(type(sp.parse(sql_query)))
-        print(sp.parse(sql_query))
         parsed_sql = json.dumps(sp.parse(sql_query))
         json_res = json.loads(parsed_sql)
         s = Command.select_parser(json_res)
         f = Command.from_parser(json_res)
-
         if 'server_src' not in content:
-
-            for file in os.listdir(
-                    Command.data_folder_name + os.sep + Command.folder_name + os.sep + Command.fragments_folder_name):
+            files = [f for f in os.listdir(Command.data_folder_name) if
+                     os.path.isfile(os.path.join(Command.data_folder_name, f))]
+            for file in files:
                 content = pd.read_csv(
-                    os.path.join(Command.data_folder_name, Command.folder_name, Command.fragments_folder_name,
-                                 file))
+                    os.path.join(Command.data_folder_name, file))
                 exec(decoded_mapper)
                 res = locals()['custom_mapper'](content, s)
-
                 res.to_csv(os.path.join(os.path.dirname(__file__), '..', Command.data_folder_name, Command.folder_name,
                                         Command.mapped_fragments_folder_name, file), index=False)
             return Command.mapped_fragments_folder_name
@@ -159,14 +166,12 @@ class Command:
             exec(decoded_mapper)
             res = locals()['custom_mapper'](content, s)
 
-            res.to_csv(os.path.join(os.path.dirname(__file__), '..', Command.data_folder_name, Command.folder_name,
-                                    Command.mapped_fragments_folder_name, Command.mapped_fragments_folder_name),
+            res.to_csv(os.path.join(os.path.dirname(__file__), '..', Command.data_folder_name, Command.folder_name),
                        index=False)
-
             return Command.mapped_fragments_folder_name
 
     @staticmethod
-    def min_max_hash(hash_key_list, file_name):
+    def min_max_hash(hash_key_list, file_name, sql):
         with open(os.path.join('config', 'data_node_info.json')) as f:
             arbiter_address = json.load(f)['arbiter_address']
 
@@ -177,7 +182,8 @@ class Command:
         url = f'http://{arbiter_address}/command/hash'
         diction = {
             'list_keys': res,
-            'file_name': file_name
+            'file_name': file_name,
+            'sql_query': sql
         }
         response = requests.post(url, json=diction)
         return response
@@ -290,3 +296,27 @@ class Command:
                     i['aggregate_f_name'])
         res = data_frame.drop_duplicates(groupby_cols)
         res.to_csv('reduced_csv.csv', index=False)
+
+    @staticmethod
+    def group_by_parser(data):
+        select_data = data['groupby']
+        res = []
+        if type(select_data) is list:
+            for item in select_data:
+                item_dict = {}
+
+                if 'literal' in item['value'].keys():
+                    item_dict['key_name'] = item['value']['literal']
+                else:
+                    item_dict['key_name'] = item['value']
+
+                res.append(item_dict)
+        else:
+            item_dict = {}
+            if 'literal' in select_data['value'].keys():
+                item_dict['key_name'] = select_data['value']['literal']
+            else:
+                item_dict['key_name'] = select_data['value']
+
+            res.append(item_dict)
+        return res

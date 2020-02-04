@@ -9,6 +9,7 @@ import json
 import os
 import requests
 import shutil
+import moz_sql_parser as sp
 
 with open(os.path.join(os.path.dirname(__file__), "config", "config.json")) as config_file:
     config = json.load(config_file)
@@ -39,7 +40,14 @@ def map():
 
 @app.route("/command/shuffle", methods=["POST"])
 def shuffle():
-    sf.shuffle(request.json)
+    print("SSSS")
+    print(request.json)
+    sql = request.json['sql_query']
+
+    parsed_sql = json.dumps(sp.parse(sql))
+    json_res = json.loads(parsed_sql)
+    group_by_keys = cmd.group_by_parser(json_res)
+    sf.shuffle(request.json, group_by_keys)
     return jsonify(success=True)
 
 
@@ -53,8 +61,15 @@ def finish_shuffle():
 def min_max_hash():
     print(request.json)
     file_name = request.json['source_file']
-    print(file_name)
-    cmd.min_max_hash(cmd.hash_keys(file_name), file_name)
+    sql = request.json['sql_query']
+
+    parsed_sql = json.dumps(sp.parse(sql))
+    json_res = json.loads(parsed_sql)
+    group_by_keys = cmd.group_by_parser(json_res)
+    folder_name = os.path.splitext(file_name)[0] + \
+                  config['name_delimiter'] + config['fragments_folder_name'] + \
+                  os.path.splitext(file_name)[1]
+    cmd.min_max_hash(cmd.hash_keys(folder_name, group_by_keys[0]), folder_name, sql)
 
     return jsonify(success=True)
 
