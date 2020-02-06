@@ -19,49 +19,52 @@ with open(os.path.join(os.path.dirname(__file__), '..', 'config', 'config.json')
 
 
 class Command:
-    file_name = None
-    folder_name = None
-    fragments_folder_name = None
-    reduced_fragments_folder_name = None
-    shuffled_fragments_folder_name = None
-    mapped_fragments_folder_name = None
-    data_folder_name = None
+    file_name_path = None
+    folder_name_path = None
+    init_folder_name_path = None
+    reduce_folder_name_path  = None
+    shuffle_folder_name_path  = None
+    map_folder_name_path  = None
+    data_folder_name_path = None
 
     @staticmethod
     def init_folder_variables(file_name):
         name, extension = os.path.splitext(file_name)
         folder_format = name + config['name_delimiter'] + '{}' + extension
-        Command.file_name = file_name
-        Command.folder_name = folder_format.format(config['folder_name'])
-        Command.fragments_folder_name = folder_format.format(config['fragments_folder_name'])
-        Command.reduced_fragments_folder_name = folder_format.format(config['reduced_fragments_folder_name'])
-        Command.shuffled_fragments_folder_name = folder_format.format(config['shuffled_fragments_folder_name'])
-        Command.mapped_fragments_folder_name = folder_format.format(config['mapped_fragments_folder_name'])
-        Command.data_folder_name = config['data_folder_name']
+        Command.data_folder_name_path = config['data_folder_name']
+        Command.file_name_path = os.path.join(Command.data_folder_name_path, file_name)
+        Command.folder_name_path = os.path.join(Command.data_folder_name_path,
+                                                folder_format.format(config['folder_name']))
+        Command.init_folder_name_path = os.path.join(Command.folder_name_path,
+                                                     folder_format.format(config['init_folder_name']))
+        Command.reduce_folder_name_path = os.path.join(Command.folder_name_path,
+                                                       folder_format.format(config['reduce_folder_name']))
+        Command.shuffle_folder_name_path = os.path.join(Command.folder_name_path,
+                                                        folder_format.format(config['shuffle_folder_name']))
+        Command.map_folder_name_path = os.path.join(Command.folder_name_path,
+                                                    folder_format.format(config['map_folder_name']))
+
 
     @staticmethod
-    def create_dest_file(file_name):
-        if not os.path.isfile(os.path.join(Command.data_folder_name, file_name)):
-            with open(os.path.join(Command.data_folder_name, file_name), 'w+') as f:
-                f.close()
+    def create_filesystem():
+        if not os.path.exists(Command.data_folder_name_path):
+            os.makedirs(Command.data_folder_name_path)
+        open(Command.file_name_path, 'w+').close()
 
-        if not os.path.isdir(os.path.join(Command.data_folder_name, Command.folder_name)):
-            os.mkdir(os.path.join(Command.data_folder_name, Command.folder_name))
-
-        if not os.path.isdir(
-                os.path.join(Command.data_folder_name, Command.folder_name, Command.fragments_folder_name)):
-            os.makedirs(os.path.join(Command.data_folder_name, Command.folder_name, Command.fragments_folder_name))
+        Command.make_folder(Command.folder_name_path)
+        Command.make_folder(Command.init_folder_name_path)
+        Command.make_folder(Command.map_folder_name_path)
+        Command.make_folder(Command.shuffle_folder_name_path)
 
     @staticmethod
-    def make_file(path):
-        if not os.path.isdir(os.path.join(Command.data_folder_name, path)):
-            os.makedirs(os.path.join(Command.data_folder_name, path))
+    def make_folder(path):
+        if not os.path.isdir(path):
+            os.makedirs(path)
 
     @staticmethod
     def write(content):
         file_name = content['file_name'].split(os.sep)[-1]
-        path = os.path.join(os.path.dirname(__file__), '..', Command.data_folder_name, Command.folder_name,
-                            Command.fragments_folder_name, file_name)
+        path = os.path.join(Command.init_folder_name_path, file_name)
         with open(path, 'w+', encoding='utf-8') as f:
             f.writelines(content['segment'])
 
@@ -134,7 +137,6 @@ class Command:
         dir_name = os.path.join(Command.data_folder_name, dest)
         folder_name = dir_name.split(os.sep)
 
-        Command.make_file(Command.folder_name + os.sep + Command.mapped_fragments_folder_name)
         decoded_mapper = base64.b64decode(mapper)
         parsed_sql = json.dumps(sp.parse(sql_query))
         json_res = json.loads(parsed_sql)
@@ -182,14 +184,11 @@ class Command:
     def clear_data(content):
 
         data = content
-        folder_name = data['folder_name']
         remove_all = data['remove_all_data']
 
-        full_folder_name = os.path.join(os.path.dirname(__file__), '..', Command.data_folder_name, Command.folder_name)
-
         if remove_all:
-            os.remove(os.path.join(os.path.dirname(__file__), '..', Command.data_folder_name, folder_name))
-        shutil.rmtree(full_folder_name)
+            os.remove(Command.file_name_path)
+        shutil.rmtree(Command.folder_name_path)
 
     @staticmethod
     def get_file(content):

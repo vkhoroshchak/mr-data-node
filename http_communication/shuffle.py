@@ -38,13 +38,8 @@ def shuffle(content, group_by_key):
     full_file_path = os.path.join(os.path.dirname(__file__), '..', Command.data_folder_name, Command.folder_name,
                                   Command.shuffled_fragments_folder_name,
                                   'shuffled.csv')
-    full_shuffle_dir_path = os.path.join(os.path.dirname(__file__), '..', Command.data_folder_name, Command.folder_name,
-                                         Command.shuffled_fragments_folder_name)
     full_init_dir_path = os.path.join(os.path.dirname(__file__), '..', Command.data_folder_name, Command.folder_name,
                                       Command.fragments_folder_name)
-
-    if not os.path.exists(full_shuffle_dir_path):
-        os.makedirs(full_shuffle_dir_path)
 
     files = []
     # r=root, d=directories, f = files

@@ -2,8 +2,8 @@
   "name_delimiter": "_",
   "data_folder_name": "data",
   "folder_name": "folder",
-  "fragments_folder_name": "init",
-  "mapped_fragments_folder_name": "map",
-  "shuffled_fragments_folder_name": "shuffle",
-  "reduced_fragments_folder_name": "reduced"
+  "init_folder_name": "init",
+  "map_folder_name": "map",
+  "shuffle_folder_name": "shuffle",
+  "reduce_folder_name": "reduce"
 }
