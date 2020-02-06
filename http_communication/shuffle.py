@@ -67,7 +67,6 @@ def shuffle(content, group_by_key):
                     data_f.iloc[index_list].to_csv(full_file_path, mode='a', header=False, index=False,
                                                    encoding='utf-8')
             else:
-                print(data_f.iloc[index_list].info())
                 data = {'content': data_f.iloc[index_list].to_json(),
                         'data_node_ip': i['data_node_ip']}
 

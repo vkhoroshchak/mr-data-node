@@ -100,7 +100,7 @@ def recognize_command(self, content):
         json_data_obj = content["map"]
         json_data_obj["destination_file"] = cmd.map(json_data_obj)
         cmd.min_max_hash(cmd.hash_keys(json_data_obj["destination_file"]), json_data_obj["destination_file"])
-    elif "shuffle" in content: # ???????????????????
+    elif "shuffle" in content:
         shuffle.shuffle(content["shuffle"])
     elif "reduce" in content:
         cmd.reduce(content["reduce"])
