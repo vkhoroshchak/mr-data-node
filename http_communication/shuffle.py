@@ -34,58 +34,51 @@ class ShuffleCommand:
         return response
 
 
-# TODO: refactor
-def shuffle(content, group_by_keys):
-    print(content)
-    dir_name = content['file_name'].split(os.sep)[-1]
+def shuffle(content, group_by_key):
+    full_file_path = os.path.join(os.path.dirname(__file__), '..', Command.data_folder_name, Command.folder_name,
+                                  Command.shuffled_fragments_folder_name,
+                                  'shuffled.csv')
+    full_shuffle_dir_path = os.path.join(os.path.dirname(__file__), '..', Command.data_folder_name, Command.folder_name,
+                                         Command.shuffled_fragments_folder_name)
+    full_init_dir_path = os.path.join(os.path.dirname(__file__), '..', Command.data_folder_name, Command.folder_name,
+                                      Command.fragments_folder_name)
+
+    if not os.path.exists(full_shuffle_dir_path):
+        os.makedirs(full_shuffle_dir_path)
+
     files = []
-    result = {'shuffle_items': [], 'headers': []}
-
-    folder_name = config['name_delimiter'].join(os.path.splitext(dir_name)[0].split(config['name_delimiter'])[:-1]) + \
-                  config['name_delimiter'] + config[
-                      'folder_name'] + os.path.splitext(dir_name)[1]
-    new_dir_name = config['name_delimiter'].join(os.path.splitext(dir_name)[0].split(config['name_delimiter'])[:-1]) + \
-                   config['name_delimiter'] + config[
-                       'shuffled_fragments_folder_name'] + os.path.splitext(dir_name)[1]
-
-    if not os.path.isfile(folder_name + os.sep + new_dir_name):
-        Command.make_file(folder_name + os.sep + new_dir_name)
-
-    for i in content['nodes_keys']:
-        result['shuffle_items'].append({'data_node_ip': i['data_node_ip'], 'content': []})
     # r=root, d=directories, f = files
 
-    for r, d, f in os.walk(
-            os.path.join(os.path.dirname(__file__), '..', config['data_folder_name'], folder_name, dir_name)):
+    for r, d, f in os.walk(full_init_dir_path):
         for file in f:
             files.append(os.path.join(r, file))
 
     for f in files:
-        index_list = []
         data_f = pd.read_csv(f)
-        result['headers'] = list(data_f.columns)
-        for g_b_k in group_by_keys:
-            for index, it in enumerate(data_f.loc[:, g_b_k['key_name']]):
-                for item in content['nodes_keys']:
-                    if item['hash_keys_range'][1] == content['max_hash']:
-                        if item['hash_keys_range'][0] <= Command.hash_f(it) <= item['hash_keys_range'][1]:
-                            index_list.append(index)
+        headers = list(data_f.columns)
 
-                    else:
-                        if item['hash_keys_range'][0] <= Command.hash_f(it) < item['hash_keys_range'][
-                            1]:
-                            index_list.append(index)
+        for i in content['nodes_keys']:
+            index_list = []
+            for index, it in enumerate(data_f.loc[:, group_by_key['key_name']]):
 
-        for item in content['nodes_keys']:
-            for i in result['shuffle_items']:
-                if i['data_node_ip'] == item['data_node_ip']:
-                    i['content'] = data_f.iloc[index_list]
+                if i['hash_keys_range'][1] == content['max_hash']:
+                    if i['hash_keys_range'][0] <= Command.hash_f(it) <= i['hash_keys_range'][1]:
+                        index_list.append(index)
 
-        for i in result['shuffle_items']:
+                else:
+                    if i['hash_keys_range'][0] <= Command.hash_f(it) < i['hash_keys_range'][1]:
+                        index_list.append(index)
+
             if i['data_node_ip'] == self_node_ip:
-                i['content'].to_csv(
-                    os.path.join(os.path.dirname(__file__), '..', config['data_folder_name'], folder_name, new_dir_name,
-                                 'shuffled.csv'), encoding='utf-8', index=False)
+                if not os.path.isfile(full_file_path):
+                    data_f.iloc[index_list].to_csv(full_file_path, header=headers, encoding='utf-8', index=False)
+                else:
+                    data_f.iloc[index_list].to_csv(full_file_path, mode='a', header=False, index=False,
+                                                   encoding='utf-8')
             else:
-                sc = ShuffleCommand(i, new_dir_name)
+                print(data_f.iloc[index_list].info())
+                data = {'content': data_f.iloc[index_list].to_json(),
+                        'data_node_ip': i['data_node_ip']}
+
+                sc = ShuffleCommand(data, full_file_path)
                 sc.send()

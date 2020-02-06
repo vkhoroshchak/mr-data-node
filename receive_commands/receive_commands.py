@@ -67,10 +67,11 @@ class Command:
 
     @staticmethod
     def hash_f(string):
-        if type(string) is not str:
-            string = str(string)
-        res = 545
-        return sum([res + ord(i) for i in string])
+        if type(string) == str:
+            res = 545
+            return sum([res + ord(i) for i in string])
+        else:
+            return string
 
     @staticmethod
     def hash_keys(content, group_by_key):
@@ -114,24 +115,13 @@ class Command:
 
     @staticmethod
     def finish_shuffle(content):
-        folder_name = config['name_delimiter'].join(
-            os.path.splitext(dir_name)[0].split(config['name_delimiter'])[:-1]) + \
-                      config['name_delimiter'] + config[
-                          'folder_name'] + os.path.splitext(dir_name)[1]
-        new_dir_name = config['name_delimiter'].join(
-            os.path.splitext(dir_name)[0].split(config['name_delimiter'])[:-1]) + \
-                       config['name_delimiter'] + config[
-                           'shuffled_fragments_folder_name'] + os.path.splitext(dir_name)[1]
-        data = content
-        dir_name = data['file_path']
+        cols = list(pd.read_json(content['content']).columns)
 
-        full_dir_name = os.path.join(os.path.dirname(__file__), '..', Command.data_folder_name, Command.folder_name,
-                                     dir_name)
-        if not os.path.isfile(full_dir_name):
-            Command.make_file(full_dir_name)
-        data['content'].to_csv(
-            os.path.join(os.path.dirname(__file__), '..', config['data_folder_name'], folder_name, new_dir_name,
-                         'shuffled.csv'), encoding='utf-8', index=False)
+        data_frame = pd.read_json(content['content'])
+        if not os.path.isfile(content['file_path']):
+            data_frame.to_csv(content['file_path'], header=cols, encoding='utf-8', index=False)
+        else:
+            data_frame.to_csv(content['file_path'], mode='a', header=False, index=False, encoding='utf-8')
 
     @staticmethod
     def map(content):
