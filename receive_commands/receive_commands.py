@@ -22,9 +22,9 @@ class Command:
     file_name_path = None
     folder_name_path = None
     init_folder_name_path = None
-    reduce_folder_name_path  = None
-    shuffle_folder_name_path  = None
-    map_folder_name_path  = None
+    reduce_folder_name_path = None
+    shuffle_folder_name_path = None
+    map_folder_name_path = None
     data_folder_name_path = None
 
     @staticmethod
@@ -43,7 +43,6 @@ class Command:
                                                         folder_format.format(config['shuffle_folder_name']))
         Command.map_folder_name_path = os.path.join(Command.folder_name_path,
                                                     folder_format.format(config['map_folder_name']))
-
 
     @staticmethod
     def create_filesystem():
@@ -80,10 +79,8 @@ class Command:
     def hash_keys(content, group_by_key):
         dir_name = content.split(os.sep)[-1]
 
-        path = os.path.join(os.path.dirname(__file__), '..', Command.data_folder_name, Command.folder_name, dir_name)
-
         # r=root, d=directories, f = files
-        files = [os.path.join(r, file) for r, d, f in os.walk(path) for file in f]
+        files = [os.path.join(r, file) for r, d, f in os.walk(Command.init_folder_name_path) for file in f]
         hash_key_list = []
         for f in files:
             data_f = pd.read_csv(f)
@@ -106,15 +103,13 @@ class Command:
         f = Command.from_parser(json_res)
         gb = Command.group_by_parser(json_res)
 
-        data_frame = pd.read_csv(
-            os.path.join(os.path.dirname(__file__), '..', Command.data_folder_name, Command.folder_name,
-                         Command.shuffled_fragments_folder_name, 'shuffled.csv'))
+        data_frame = pd.read_csv(os.path.join(Command.shuffle_folder_name_path, 'shuffled.csv'))
 
         exec(reducer)
         for i in gb:
             data_frame = locals()['custom_reducer'](data_frame, s, i['key_name'])
 
-        data_frame.to_csv(os.path.join(os.path.dirname(__file__), '..', Command.data_folder_name, dest), index=False)
+        data_frame.to_csv(Command.file_name_path, index=False)
 
     @staticmethod
     def finish_shuffle(content):
@@ -134,33 +129,25 @@ class Command:
         key_delimiter = content['key_delimiter']
         sql_query = content['sql_query']
 
-        dir_name = os.path.join(Command.data_folder_name, dest)
-        folder_name = dir_name.split(os.sep)
-
         decoded_mapper = base64.b64decode(mapper)
         parsed_sql = json.dumps(sp.parse(sql_query))
         json_res = json.loads(parsed_sql)
         s = Command.select_parser(json_res)
         f = Command.from_parser(json_res)
         if 'server_src' not in content:
-            files = [f for f in os.listdir(Command.data_folder_name) if
-                     os.path.isfile(os.path.join(Command.data_folder_name, f))]
+            files = [f for f in os.listdir(Command.shuffle_folder_name_path) if
+                     os.path.isfile(os.path.join(Command.shuffle_folder_name_path, f))]
+
             for file in files:
-                content = pd.read_csv(
-                    os.path.join(Command.data_folder_name, file))
+                content = pd.read_csv(os.path.join(Command.shuffle_folder_name_path, file))
                 exec(decoded_mapper)
                 res = locals()['custom_mapper'](content, s)
-                res.to_csv(os.path.join(os.path.dirname(__file__), '..', Command.data_folder_name, Command.folder_name,
-                                        Command.mapped_fragments_folder_name, file), index=False)
-            return Command.mapped_fragments_folder_name
+                res.to_csv(os.path.join(Command.map_folder_name_path, file), index=False)
         else:
-            content = pd.read_csv(os.path.join(Command.data_folder_name, content['server_src']))
+            content = pd.read_csv(os.path.join(Command.data_folder_name_path, content['server_src']))
             exec(decoded_mapper)
             res = locals()['custom_mapper'](content, s)
-
-            res.to_csv(os.path.join(os.path.dirname(__file__), '..', Command.data_folder_name, Command.folder_name),
-                       index=False)
-            return Command.mapped_fragments_folder_name
+            res.to_csv(Command.folder_name_path, index=False)
 
     @staticmethod
     def min_max_hash(hash_key_list, file_name, sql):

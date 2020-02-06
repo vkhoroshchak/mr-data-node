@@ -35,16 +35,12 @@ class ShuffleCommand:
 
 
 def shuffle(content, group_by_key):
-    full_file_path = os.path.join(os.path.dirname(__file__), '..', Command.data_folder_name, Command.folder_name,
-                                  Command.shuffled_fragments_folder_name,
-                                  'shuffled.csv')
-    full_init_dir_path = os.path.join(os.path.dirname(__file__), '..', Command.data_folder_name, Command.folder_name,
-                                      Command.fragments_folder_name)
+    full_file_path = os.path.join(Command.shuffle_folder_name_path, 'shuffled.csv')
 
     files = []
-    # r=root, d=directories, f = files
 
-    for r, d, f in os.walk(full_init_dir_path):
+    # r=root, d=directories, f = files
+    for r, d, f in os.walk(Command.init_folder_name_path):
         for file in f:
             files.append(os.path.join(r, file))
 

@@ -21,7 +21,7 @@ app = Flask(__name__)
 def make_file():
     file_name = request.json["file_name"]
     cmd.init_folder_variables(file_name)
-    cmd.create_dest_file(file_name)
+    cmd.create_filesystem()
 
     return jsonify(success=True)
 
@@ -60,16 +60,14 @@ def finish_shuffle():
 @app.route("/command/min_max_hash", methods=["POST"])
 def min_max_hash():
     print(request.json)
-    file_name = request.json['source_file']
+
     sql = request.json['sql_query']
 
     parsed_sql = json.dumps(sp.parse(sql))
     json_res = json.loads(parsed_sql)
     group_by_keys = cmd.group_by_parser(json_res)
-    folder_name = os.path.splitext(file_name)[0] + \
-                  config['name_delimiter'] + config['fragments_folder_name'] + \
-                  os.path.splitext(file_name)[1]
-    cmd.min_max_hash(cmd.hash_keys(folder_name, group_by_keys[0]), folder_name, sql)
+
+    cmd.min_max_hash(cmd.hash_keys(cmd.init_folder_name_path, group_by_keys[0]), cmd.init_folder_name_path, sql)
 
     return jsonify(success=True)
 
