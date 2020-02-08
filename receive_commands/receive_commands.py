@@ -82,12 +82,8 @@ class Command:
             f.writelines(content['segment'])
 
     @staticmethod
-    def hash_f(string):
-        if type(string) == str:
-            res = 545
-            return sum([res + ord(i) for i in string])
-        else:
-            return string
+    def hash_f(input):
+        return hash(input)
 
     @staticmethod
     def hash_keys(content, group_by_key):
