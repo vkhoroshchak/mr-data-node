@@ -18,8 +18,6 @@ with open(os.path.join(os.path.dirname(__file__), '..', 'config', 'config.json')
     config = json.load(config_file)
 
 
-
-
 class Command:
     file_name_path = None
     folder_name_path = None
@@ -58,11 +56,7 @@ class Command:
             json.dump(diction, updated_config, indent=4)
 
     @staticmethod
-    def create_filesystem():
-        if not os.path.exists(Command.data_folder_name_path):
-            os.makedirs(Command.data_folder_name_path)
-        open(Command.file_name_path, 'w+').close()
-
+    def create_folders():
         Command.make_folder(Command.folder_name_path)
         Command.make_folder(Command.init_folder_name_path)
         Command.make_folder(Command.map_folder_name_path)
@@ -103,19 +97,15 @@ class Command:
         reducer = base64.b64decode(content['reducer'])
         key_delimiter = content['key_delimiter']
         dest = content['destination_file']
-        sql_query = content['sql_query']
-
-        parsed_sql = json.dumps(sp.parse(sql_query))
-        json_res = json.loads(parsed_sql)
-        s = Command.select_parser(json_res)
-        f = Command.from_parser(json_res)
-        gb = Command.group_by_parser(json_res)
+        parsed_sql = content['parsed_sql']
+        parsed_select = parsed_sql['parsed_select']
+        parsed_group_by = parsed_sql['parsed_group_by']
 
         data_frame = pd.read_csv(os.path.join(Command.shuffle_folder_name_path, 'shuffled.csv'))
 
         exec(reducer)
-        for i in gb:
-            data_frame = locals()['custom_reducer'](data_frame, s, i['key_name'])
+        for i in parsed_group_by:
+            data_frame = locals()['custom_reducer'](data_frame, parsed_select, i['key_name'])
 
         data_frame.to_csv(os.path.join(Command.reduce_folder_name_path, 'reduced.csv'), index=False)
 
@@ -135,24 +125,20 @@ class Command:
         mapper = content['mapper']
         field_delimiter = content['field_delimiter']
         key_delimiter = content['key_delimiter']
-        sql_query = content['sql_query']
-
+        parsed_select = content['parsed_select']
+        file = None
         decoded_mapper = base64.b64decode(mapper)
-        parsed_sql = json.dumps(sp.parse(sql_query))
-        json_res = json.loads(parsed_sql)
-        s = Command.select_parser(json_res)
-        f = Command.from_parser(json_res)
         for f in os.listdir(Command.reduce_folder_name_path):
             if os.path.isfile(os.path.join(Command.reduce_folder_name_path, f)):
                 file = f
 
         content = pd.read_csv(os.path.join(Command.reduce_folder_name_path, file))
         exec(decoded_mapper)
-        res = locals()['custom_mapper'](content, s)
-        res.to_csv(Command.file_name_path, index=False, mode="a")
+        res = locals()['custom_mapper'](content, parsed_select)
+        res.to_csv(Command.file_name_path, index=False, mode="w")
 
     @staticmethod
-    def min_max_hash(hash_key_list, file_name, sql):
+    def min_max_hash(hash_key_list, file_name, parsed_group_by):
         with open(os.path.join('config', 'data_node_info.json')) as f:
             arbiter_address = json.load(f)['arbiter_address']
 
@@ -164,7 +150,7 @@ class Command:
         diction = {
             'list_keys': res,
             'file_name': file_name,
-            'sql_query': sql
+            'parsed_group_by': parsed_group_by
         }
         response = requests.post(url, json=diction)
         return response
@@ -180,14 +166,11 @@ class Command:
         shutil.rmtree(Command.folder_name_path)
 
     @staticmethod
-    def get_file(content):
-
+    def get_file():
         path = os.path.join(os.path.dirname(__file__), '..', Command.data_folder_name,
                             Command.reduced_fragments_folder_name, 'result')
-
         with open(path) as f:
             data = f.read()
-
         return data
 
     @staticmethod
@@ -203,103 +186,7 @@ class Command:
                     return line
 
     @staticmethod
-    def select_parser(data):
-        select_data = data['select']
-        res = []
-        for i in select_data:
-            item_dict = {}
-            if type(i['value']) is not dict:
-                item_dict['old_name'] = i['value']
-                if 'name' in i.keys():
-                    item_dict['new_name'] = i['name']
-                else:
-                    item_dict['new_name'] = i['value']
-            elif 'literal' in i['value'].keys():
-                item_dict['old_name'] = i['value']['literal']
-                if 'name' in i.keys():
-                    item_dict['new_name'] = i['name']
-                else:
-                    item_dict['new_name'] = i['value']['literal']
-            elif 'sum' in i['value'].keys():
-                item_dict = Command.parse_aggregation_value('sum', i)
-
-            elif 'min' in i['value'].keys():
-                item_dict = Command.parse_aggregation_value('min', i)
-            elif 'max' in i['value'].keys():
-                item_dict = Command.parse_aggregation_value('max', i)
-            elif 'avg' in i['value'].keys():
-                item_dict = Command.parse_aggregation_value('avg', i)
-            elif 'count' in i['value'].keys():
-                item_dict = Command.parse_aggregation_value('count', i)
-
-            res.append(item_dict)
-
-        return res
-
-    @staticmethod
-    def from_parser(data):
-        res = {}
-        if type(data['from']) is not dict:
-            res['file_name'] = data['from']
-        return res
-
-    @staticmethod
-    def parse_aggregation_value(name, data):
-        res = {'old_name': data['value'][name]}
-        if 'name' in data.keys():
-            res['new_name'] = f"{data['name']}"
-        else:
-            res['new_name'] = f"{name.upper()}_{data['value'][name]}"
-        res['aggregate_f_name'] = name
-        return res
-
-    @staticmethod
-    def map_pd(data_frame, col_names):
-        old_names = []
-        new_names = []
-        for i in col_names:
-            old_names.append(i['old_name'])
-            new_names.append(i['new_name'])
-
-        res = data_frame[old_names].copy()
-        res.columns = new_names
-        res.to_csv('mapped_csv_data.csv', index=False)
-        return res
-
-    @staticmethod
-    def reduce_pd(data_frame, col_names, groupby_cols):
-        for i in col_names:
-            if 'aggregate_f_name' in i.keys():
-                data_frame[i['new_name']] = data_frame.groupby(groupby_cols)[i['new_name']].transform(
-                    i['aggregate_f_name'])
-        res = data_frame.drop_duplicates(groupby_cols)
-        res.to_csv('reduced_csv.csv', index=False)
-
-    @staticmethod
-    def group_by_parser(data):
-        select_data = data['groupby']
-        res = []
-        if type(select_data) is list:
-            for item in select_data:
-                item_dict = {}
-
-                if 'literal' in item['value'].keys():
-                    item_dict['key_name'] = item['value']['literal']
-                else:
-                    item_dict['key_name'] = item['value']
-
-                res.append(item_dict)
-        else:
-            item_dict = {}
-            if 'literal' in select_data['value'].keys():
-                item_dict['key_name'] = select_data['value']['literal']
-            else:
-                item_dict['key_name'] = select_data['value']
-
-            res.append(item_dict)
-        return res
-
-    @staticmethod
     def move_file_to_init_folder():
-        shutil.move(Command.file_name_path, os.path.join(Command.init_folder_name_path,
-                                                         os.path.basename(Command.file_name_path)))
+        if os.path.exists(Command.file_name_path):
+            shutil.move(Command.file_name_path, os.path.join(Command.init_folder_name_path,
+                                                             os.path.basename(Command.file_name_path)))

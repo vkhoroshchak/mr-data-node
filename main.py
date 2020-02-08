@@ -17,12 +17,11 @@ with open(os.path.join(os.path.dirname(__file__), "config", "config.json")) as c
 app = Flask(__name__)
 
 
-@app.route("/command/make_file", methods=["POST"])
-def make_file():
+@app.route("/command/create_config_and_filesystem", methods=["POST"])
+def create_config_and_filesystem():
     file_name = request.json["file_name"]
     cmd.init_folder_variables(file_name)
-    cmd.create_filesystem()
-
+    cmd.create_folders()
     return jsonify(success=True)
 
 
@@ -40,14 +39,8 @@ def map():
 
 @app.route("/command/shuffle", methods=["POST"])
 def shuffle():
-    print("SSSS")
-    print(request.json)
-    sql = request.json['sql_query']
-
-    parsed_sql = json.dumps(sp.parse(sql))
-    json_res = json.loads(parsed_sql)
-    group_by_keys = cmd.group_by_parser(json_res)
-    sf.shuffle(request.json, group_by_keys[0])
+    parsed_group_by = request.json['parsed_group_by']
+    sf.shuffle(request.json, parsed_group_by)
     return jsonify(success=True)
 
 
@@ -61,13 +54,9 @@ def finish_shuffle():
 def min_max_hash():
     print(request.json)
 
-    sql = request.json['sql_query']
+    parsed_group_by = request.json['parsed_group_by']
 
-    parsed_sql = json.dumps(sp.parse(sql))
-    json_res = json.loads(parsed_sql)
-    group_by_keys = cmd.group_by_parser(json_res)
-
-    cmd.min_max_hash(cmd.hash_keys(cmd.init_folder_name_path, group_by_keys[0]), cmd.init_folder_name_path, sql)
+    cmd.min_max_hash(cmd.hash_keys(cmd.init_folder_name_path, parsed_group_by), cmd.init_folder_name_path, parsed_group_by)
 
     return jsonify(success=True)
 
