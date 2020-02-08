@@ -18,6 +18,8 @@ with open(os.path.join(os.path.dirname(__file__), '..', 'config', 'config.json')
     config = json.load(config_file)
 
 
+
+
 class Command:
     file_name_path = None
     folder_name_path = None
@@ -43,6 +45,17 @@ class Command:
                                                         folder_format.format(config['shuffle_folder_name']))
         Command.map_folder_name_path = os.path.join(Command.folder_name_path,
                                                     folder_format.format(config['map_folder_name']))
+        with open(os.path.join(os.path.dirname(__file__), '..', 'config', 'updated_config.json'), 'w') as updated_config:
+            diction = {
+                "data_folder_name_path": Command.data_folder_name_path,
+                "file_name_path": Command.file_name_path,
+                "folder_name_path": Command.folder_name_path,
+                "init_folder_name_path": Command.init_folder_name_path,
+                "reduce_folder_name_path": Command.reduce_folder_name_path,
+                "shuffle_folder_name_path": Command.shuffle_folder_name_path,
+                "map_folder_name_path": Command.map_folder_name_path
+            }
+            json.dump(diction, updated_config, indent=4)
 
     @staticmethod
     def create_filesystem():
@@ -54,6 +67,7 @@ class Command:
         Command.make_folder(Command.init_folder_name_path)
         Command.make_folder(Command.map_folder_name_path)
         Command.make_folder(Command.shuffle_folder_name_path)
+        Command.make_folder(Command.reduce_folder_name_path)
 
     @staticmethod
     def make_folder(path):
@@ -77,8 +91,6 @@ class Command:
 
     @staticmethod
     def hash_keys(content, group_by_key):
-        dir_name = content.split(os.sep)[-1]
-
         # r=root, d=directories, f = files
         files = [os.path.join(r, file) for r, d, f in os.walk(Command.init_folder_name_path) for file in f]
         hash_key_list = []
@@ -109,7 +121,7 @@ class Command:
         for i in gb:
             data_frame = locals()['custom_reducer'](data_frame, s, i['key_name'])
 
-        data_frame.to_csv(Command.file_name_path, index=False)
+        data_frame.to_csv(os.path.join(Command.reduce_folder_name_path, 'reduced.csv'), index=False)
 
     @staticmethod
     def finish_shuffle(content):
@@ -134,20 +146,14 @@ class Command:
         json_res = json.loads(parsed_sql)
         s = Command.select_parser(json_res)
         f = Command.from_parser(json_res)
-        if 'server_src' not in content:
-            files = [f for f in os.listdir(Command.shuffle_folder_name_path) if
-                     os.path.isfile(os.path.join(Command.shuffle_folder_name_path, f))]
+        for f in os.listdir(Command.reduce_folder_name_path):
+            if os.path.isfile(os.path.join(Command.reduce_folder_name_path, f)):
+                file = f
 
-            for file in files:
-                content = pd.read_csv(os.path.join(Command.shuffle_folder_name_path, file))
-                exec(decoded_mapper)
-                res = locals()['custom_mapper'](content, s)
-                res.to_csv(os.path.join(Command.map_folder_name_path, file), index=False)
-        else:
-            content = pd.read_csv(os.path.join(Command.data_folder_name_path, content['server_src']))
-            exec(decoded_mapper)
-            res = locals()['custom_mapper'](content, s)
-            res.to_csv(Command.folder_name_path, index=False)
+        content = pd.read_csv(os.path.join(Command.reduce_folder_name_path, file))
+        exec(decoded_mapper)
+        res = locals()['custom_mapper'](content, s)
+        res.to_csv(Command.file_name_path, index=False, mode="a")
 
     @staticmethod
     def min_max_hash(hash_key_list, file_name, sql):
@@ -296,3 +302,8 @@ class Command:
 
             res.append(item_dict)
         return res
+
+    @staticmethod
+    def move_file_to_init_folder():
+        shutil.move(Command.file_name_path, os.path.join(Command.init_folder_name_path,
+                                                         os.path.basename(Command.file_name_path)))

@@ -87,6 +87,13 @@ def reduce():
     return jsonify(success=True)
 
 
+@app.route('/command/move_file_to_init_folder', methods=['POST'])
+def move_file_to_init_folder():
+    # send_requests.send_request_to_data_nodes(request.json, 'move_file_to_init_folder')
+    cmd.move_file_to_init_folder()
+    return jsonify(success=True)
+
+
 def recognize_command(self, content):
     json_data_obj = {}
     if "make_file" in content:
