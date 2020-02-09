@@ -81,7 +81,8 @@ class Command:
         file_name = content['file_name'].split(os.sep)[-1]
         path = os.path.join(Command.init_folder_name_path, file_name)
         with open(path, 'w+', encoding='utf-8') as f:
-            f.writelines(content['segment'])
+            f.write(content["segment"]["headers"]+'\n')
+            f.writelines(content['segment']["content"]["items"])
 
     @staticmethod
     def hash_f(input):
