@@ -57,6 +57,14 @@ class Command:
 
     @staticmethod
     def create_folders():
+        print("I AM IN CREATE_FOLDERS")
+        print("IS FILE HERE?")
+        print(os.path.exists(Command.file_name_path))
+        if os.path.exists(Command.file_name_path):
+            print("I SHOULD CLEAR FOLDERS FIRST")
+            Command.clear_data({"remove_all_data": False})
+        print("IS FILE STILL HERE?")
+        print(os.path.exists(Command.file_name_path))
         Command.make_folder(Command.folder_name_path)
         Command.make_folder(Command.init_folder_name_path)
         Command.make_folder(Command.map_folder_name_path)
@@ -157,36 +165,40 @@ class Command:
 
     @staticmethod
     def clear_data(content):
-
+        print("I AM IN CLEAR_DATA")
         data = content
         remove_all = data['remove_all_data']
-
+        print(remove_all)
         if remove_all:
+            print("OH I REMOVE EVERYTHING")
             os.remove(Command.file_name_path)
+        print("REMOVE FOLDERS")
         shutil.rmtree(Command.folder_name_path)
 
-    @staticmethod
-    def get_file():
-        path = os.path.join(os.path.dirname(__file__), '..', Command.data_folder_name,
-                            Command.reduced_fragments_folder_name, 'result')
-        with open(path) as f:
-            data = f.read()
-        return data
+    # @staticmethod
+    # def get_file():
+    #     path = os.path.join(os.path.dirname(__file__), '..', Command.data_folder_name,
+    #                         Command.reduced_fragments_folder_name, 'result')
+    #     with open(path) as f:
+    #         data = f.read()
+    #     return data
 
-    @staticmethod
-    def get_result_of_key(content):
-
-        file_name = content['get_result_of_key']['file_name'].split(os.sep)[-1]
-        key = content['get_result_of_key']['key']
-
-        path = os.path.join(os.path.dirname(__file__), '..', Command.data_folder_name, file_name)
-        with open(path) as file:
-            for line in file.readlines():
-                if line.split('^')[0] == key:
-                    return line
+    # @staticmethod
+    # def get_result_of_key(content):
+    #
+    #     file_name = content['get_result_of_key']['file_name'].split(os.sep)[-1]
+    #     key = content['get_result_of_key']['key']
+    #
+    #     path = os.path.join(os.path.dirname(__file__), '..', Command.data_folder_name, file_name)
+    #     with open(path) as file:
+    #         for line in file.readlines():
+    #             if line.split('^')[0] == key:
+    #                 return line
 
     @staticmethod
     def move_file_to_init_folder():
+        print("SHOULD I MOVE FILE?")
         if os.path.exists(Command.file_name_path):
+            print("LOOKS LIKE I SHOULD AND WILL")
             shutil.move(Command.file_name_path, os.path.join(Command.init_folder_name_path,
                                                              os.path.basename(Command.file_name_path)))
