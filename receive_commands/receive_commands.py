@@ -29,6 +29,8 @@ class Command:
 
     @staticmethod
     def init_folder_variables(file_name):
+        print("I AM IN INIT FOLDER VRIABLES")
+        print(file_name)
         name, extension = os.path.splitext(file_name)
         folder_format = name + config['name_delimiter'] + '{}' + extension
         Command.data_folder_name_path = config['data_folder_name']
@@ -43,7 +45,8 @@ class Command:
                                                         folder_format.format(config['shuffle_folder_name']))
         Command.map_folder_name_path = os.path.join(Command.folder_name_path,
                                                     folder_format.format(config['map_folder_name']))
-        with open(os.path.join(os.path.dirname(__file__), '..', 'config', 'updated_config.json'), 'w') as updated_config:
+        with open(os.path.join(os.path.dirname(__file__), '..', 'config', 'updated_config.json'), 'w') \
+                as updated_config:
             diction = {
                 "data_folder_name_path": Command.data_folder_name_path,
                 "file_name_path": Command.file_name_path,
@@ -172,9 +175,13 @@ class Command:
         print(remove_all)
         if remove_all:
             print("OH I REMOVE EVERYTHING")
-            os.remove(Command.file_name_path)
+            if os.path.exists(Command.file_name_path):
+                os.remove(Command.file_name_path)
         print("REMOVE FOLDERS")
-        shutil.rmtree(Command.folder_name_path)
+        if os.path.exists(Command.folder_name_path):
+            shutil.rmtree(Command.folder_name_path)
+        if not os.path.exists(Command.file_name_path):
+            os.remove(os.path.join(os.path.dirname(__file__), '..', 'config', 'updated_config.json'))
 
     # @staticmethod
     # def get_file():
