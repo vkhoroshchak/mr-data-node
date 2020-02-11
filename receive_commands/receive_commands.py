@@ -18,6 +18,12 @@ with open(os.path.join(os.path.dirname(__file__), '..', 'config', 'config.json')
     config = json.load(config_file)
 
 
+def get_updated_config():
+    with open(os.path.join(os.path.dirname(__file__), '..', 'config', 'updated_config.json')) as updated_config_file:
+        updated_config = json.load(updated_config_file)
+    return updated_config
+
+
 class Command:
     file_name_path = None
     folder_name_path = None
@@ -173,15 +179,16 @@ class Command:
         data = content
         remove_all = data['remove_all_data']
         print(remove_all)
-        if remove_all:
-            print("OH I REMOVE EVERYTHING")
-            if os.path.exists(Command.file_name_path):
-                os.remove(Command.file_name_path)
-        print("REMOVE FOLDERS")
-        if os.path.exists(Command.folder_name_path):
-            shutil.rmtree(Command.folder_name_path)
-        if not os.path.exists(Command.file_name_path):
-            os.remove(os.path.join(os.path.dirname(__file__), '..', 'config', 'updated_config.json'))
+        updated_config = get_updated_config()
+        if os.path.exists(updated_config['file_name_path']):
+            if remove_all:
+                os.remove(updated_config['file_name_path'])
+        else:
+            print("CLEAR CONFIG?")
+            open(os.path.join(os.path.dirname(__file__), '..', 'config', 'updated_config.json'), 'w').close()
+        if os.path.exists(updated_config['folder_name_path']):
+            shutil.rmtree(updated_config['folder_name_path'])
+
 
     # @staticmethod
     # def get_file():

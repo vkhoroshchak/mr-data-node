@@ -1,0 +1,9 @@
+{
+    "data_folder_name_path": "data",
+    "file_name_path": "data\\spotify_data_f.csv",
+    "folder_name_path": "data\\spotify_data_f_folder.csv",
+    "init_folder_name_path": "data\\spotify_data_f_folder.csv\\spotify_data_f_init.csv",
+    "reduce_folder_name_path": "data\\spotify_data_f_folder.csv\\spotify_data_f_reduce.csv",
+    "shuffle_folder_name_path": "data\\spotify_data_f_folder.csv\\spotify_data_f_shuffle.csv",
+    "map_folder_name_path": "data\\spotify_data_f_folder.csv\\spotify_data_f_map.csv"
+}

@@ -20,7 +20,7 @@ app = Flask(__name__)
 @app.route("/command/create_config_and_filesystem", methods=["POST"])
 def create_config_and_filesystem():
     file_name = request.json["file_name"]
-    # cmd.init_folder_variables(file_name)
+    cmd.init_folder_variables(file_name)
     cmd.create_folders()
     return jsonify(success=True)
 
@@ -64,7 +64,7 @@ def min_max_hash():
 
 @app.route("/command/clear_data", methods=["POST"])
 def clear_data():
-    cmd.init_folder_variables(request.json["folder_name"])
+    # cmd.init_folder_variables(request.json["folder_name"])
     cmd.clear_data(request.json)
 
     return jsonify(success=True)
