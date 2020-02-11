@@ -39,8 +39,7 @@ def map():
 
 @app.route("/command/shuffle", methods=["POST"])
 def shuffle():
-    parsed_group_by = request.json['parsed_group_by']
-    sf.shuffle(request.json, parsed_group_by)
+    sf.shuffle(request.json)
     return jsonify(success=True)
 
 
@@ -55,9 +54,11 @@ def min_max_hash():
     print(request.json)
 
     parsed_group_by = request.json['parsed_group_by']
+    field_delimiter = request.json['field_delimiter']
 
-    cmd.min_max_hash(cmd.hash_keys(cmd.init_folder_name_path, parsed_group_by), cmd.init_folder_name_path,
-                     parsed_group_by)
+    cmd.min_max_hash(cmd.hash_keys(parsed_group_by, field_delimiter),
+                     cmd.init_folder_name_path,
+                     parsed_group_by, field_delimiter)
 
     return jsonify(success=True)
 
@@ -82,39 +83,6 @@ def move_file_to_init_folder():
     # send_requests.send_request_to_data_nodes(request.json, 'move_file_to_init_folder')
     cmd.move_file_to_init_folder()
     return jsonify(success=True)
-
-
-# def recognize_command(self, content):
-#     json_data_obj = {}
-#     if "make_file" in content:
-#         json_data_obj = content["make_file"]
-#         cmd.init_folder_variables(json_data_obj["file_name"])
-#         cmd.create_dest_file(json_data_obj["file_name"])
-#     elif "write" in content:
-#         json_data_obj = content["write"]
-#         cmd.write(json_data_obj)
-#     elif "map" in content:
-#         json_data_obj = content["map"]
-#         json_data_obj["destination_file"] = cmd.map(json_data_obj)
-#         cmd.min_max_hash(cmd.hash_keys(json_data_obj["destination_file"]), json_data_obj["destination_file"])
-#     elif "shuffle" in content:
-#         shuffle.shuffle(content["shuffle"])
-#     elif "reduce" in content:
-#         cmd.reduce(content["reduce"])
-#     elif "finish_shuffle" in content:
-#         cmd.finish_shuffle(content)
-#     elif "clear_data" in content:
-#         cmd.init_folder_variables(content["clear_data"]["folder_name"])
-#         cmd.clear_data(content)
-#     elif "get_file" in content:
-#         json_data_obj.clear()
-#         json_data_obj["file"] = cmd.get_file(content["get_file"])
-#     elif "get_hash_of_key" in content:
-#         json_data_obj.clear()
-#         json_data_obj["key_hash"] = cmd.hash_f(content["get_hash_of_key"])
-#     elif "get_result_of_key" in content:
-#         json_data_obj.clear()
-#         json_data_obj["result"] = cmd.get_result_of_key(content["get_result_of_key"])
 
 
 if __name__ == "__main__":

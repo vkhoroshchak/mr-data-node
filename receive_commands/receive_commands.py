@@ -98,12 +98,12 @@ class Command:
         return hash(input)
 
     @staticmethod
-    def hash_keys(content, group_by_key):
+    def hash_keys(group_by_key, field_delimiter):
         # r=root, d=directories, f = files
         files = [os.path.join(r, file) for r, d, f in os.walk(Command.init_folder_name_path) for file in f]
         hash_key_list = []
         for f in files:
-            data_f = pd.read_csv(f)
+            data_f = pd.read_csv(f, sep=field_delimiter)
 
             for j in data_f.loc[:, group_by_key['key_name']]:
                 hash_key_list.append(Command.hash_f(j))
@@ -113,36 +113,38 @@ class Command:
     @staticmethod
     def reduce(content):
         reducer = base64.b64decode(content['reducer'])
-        key_delimiter = content['key_delimiter']
+        field_delimiter = content['field_delimiter']
         dest = content['destination_file']
         parsed_sql = content['parsed_sql']
         parsed_select = parsed_sql['parsed_select']
         parsed_group_by = parsed_sql['parsed_group_by']
 
-        data_frame = pd.read_csv(os.path.join(Command.shuffle_folder_name_path, 'shuffled.csv'))
+        data_frame = pd.read_csv(os.path.join(Command.shuffle_folder_name_path, 'shuffled.csv'), sep=field_delimiter)
 
         exec(reducer)
         for i in parsed_group_by:
             data_frame = locals()['custom_reducer'](data_frame, parsed_select, i['key_name'])
 
-        data_frame.to_csv(os.path.join(Command.reduce_folder_name_path, 'reduced.csv'), index=False)
+        data_frame.to_csv(os.path.join(Command.reduce_folder_name_path, 'reduced.csv'), index=False,
+                          sep=field_delimiter)
 
     @staticmethod
     def finish_shuffle(content):
         cols = list(pd.read_json(content['content']).columns)
+        field_delimiter = content['field_delimiter']
 
         data_frame = pd.read_json(content['content'])
         if not os.path.isfile(content['file_path']):
-            data_frame.to_csv(content['file_path'], header=cols, encoding='utf-8', index=False)
+            data_frame.to_csv(content['file_path'], header=cols, encoding='utf-8', index=False, sep=field_delimiter)
         else:
-            data_frame.to_csv(content['file_path'], mode='a', header=False, index=False, encoding='utf-8')
+            data_frame.to_csv(content['file_path'], mode='a', header=False, index=False, encoding='utf-8',
+                              sep=field_delimiter)
 
     @staticmethod
     def map(content):
         dest = content['destination_file']
         mapper = content['mapper']
         field_delimiter = content['field_delimiter']
-        key_delimiter = content['key_delimiter']
         parsed_select = content['parsed_select']
         file = None
         decoded_mapper = base64.b64decode(mapper)
@@ -150,13 +152,13 @@ class Command:
             if os.path.isfile(os.path.join(Command.reduce_folder_name_path, f)):
                 file = f
 
-        content = pd.read_csv(os.path.join(Command.reduce_folder_name_path, file))
+        content = pd.read_csv(os.path.join(Command.reduce_folder_name_path, file), sep=field_delimiter)
         exec(decoded_mapper)
         res = locals()['custom_mapper'](content, parsed_select)
-        res.to_csv(Command.file_name_path, index=False, mode="w")
+        res.to_csv(Command.file_name_path, index=False, mode="w", sep=field_delimiter)
 
     @staticmethod
-    def min_max_hash(hash_key_list, file_name, parsed_group_by):
+    def min_max_hash(hash_key_list, file_name, parsed_group_by, field_delimiter):
         with open(os.path.join('config', 'data_node_info.json')) as f:
             arbiter_address = json.load(f)['arbiter_address']
 
@@ -168,7 +170,8 @@ class Command:
         diction = {
             'list_keys': res,
             'file_name': file_name,
-            'parsed_group_by': parsed_group_by
+            'parsed_group_by': parsed_group_by,
+            'field_delimiter': field_delimiter
         }
         response = requests.post(url, json=diction)
         return response
@@ -189,26 +192,6 @@ class Command:
         if os.path.exists(updated_config['folder_name_path']):
             shutil.rmtree(updated_config['folder_name_path'])
 
-
-    # @staticmethod
-    # def get_file():
-    #     path = os.path.join(os.path.dirname(__file__), '..', Command.data_folder_name,
-    #                         Command.reduced_fragments_folder_name, 'result')
-    #     with open(path) as f:
-    #         data = f.read()
-    #     return data
-
-    # @staticmethod
-    # def get_result_of_key(content):
-    #
-    #     file_name = content['get_result_of_key']['file_name'].split(os.sep)[-1]
-    #     key = content['get_result_of_key']['key']
-    #
-    #     path = os.path.join(os.path.dirname(__file__), '..', Command.data_folder_name, file_name)
-    #     with open(path) as file:
-    #         for line in file.readlines():
-    #             if line.split('^')[0] == key:
-    #                 return line
 
     @staticmethod
     def move_file_to_init_folder():

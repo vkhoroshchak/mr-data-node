@@ -17,25 +17,29 @@ with open(os.path.join('config', 'data_node_info.json')) as arbiter_node_json_da
 
 # TODO: simplify dict use
 class ShuffleCommand:
-    def __init__(self, data, file_path):
+    def __init__(self, data, file_path, field_delimiter):
         self._data = {
             'data_node_ip': data['data_node_ip'],
             'content': data['content'],
-            'file_path': file_path
+            'file_path': file_path,
+            'field_delimiter': field_delimiter
         }
 
     def send(self):
         data = {
             'content': self._data['content'],
-            'file_path': self._data['file_path']
+            'file_path': self._data['file_path'],
+            'field_delimiter': self._data['field_delimiter']
         }
         url = f'http://{self._data["data_node_ip"]}/command/finish_shuffle'
         response = requests.post(url, json=data)
         return response
 
 
-def shuffle(content, group_by_key):
+def shuffle(content):
     full_file_path = os.path.join(Command.shuffle_folder_name_path, 'shuffled.csv')
+    group_by_key = content['parsed_group_by']
+    field_delimiter = content['field_delimiter']
 
     files = []
 
@@ -45,7 +49,7 @@ def shuffle(content, group_by_key):
             files.append(os.path.join(r, file))
 
     for f in files:
-        data_f = pd.read_csv(f)
+        data_f = pd.read_csv(f, sep=field_delimiter)
         headers = list(data_f.columns)
 
         for i in content['nodes_keys']:
@@ -62,13 +66,14 @@ def shuffle(content, group_by_key):
 
             if i['data_node_ip'] == self_node_ip:
                 if not os.path.isfile(full_file_path):
-                    data_f.iloc[index_list].to_csv(full_file_path, header=headers, encoding='utf-8', index=False)
+                    data_f.iloc[index_list].to_csv(full_file_path, header=headers, encoding='utf-8', index=False,
+                                                   sep=field_delimiter)
                 else:
                     data_f.iloc[index_list].to_csv(full_file_path, mode='a', header=False, index=False,
-                                                   encoding='utf-8')
+                                                   encoding='utf-8', sep=field_delimiter)
             else:
                 data = {'content': data_f.iloc[index_list].to_json(),
                         'data_node_ip': i['data_node_ip']}
 
-                sc = ShuffleCommand(data, full_file_path)
+                sc = ShuffleCommand(data, full_file_path,field_delimiter)
                 sc.send()
