@@ -35,8 +35,6 @@ class Command:
 
     @staticmethod
     def init_folder_variables(file_name):
-        print("I AM IN INIT FOLDER VRIABLES")
-        print(file_name)
         name, extension = os.path.splitext(file_name)
         folder_format = name + config['name_delimiter'] + '{}' + extension
         Command.data_folder_name_path = config['data_folder_name']
@@ -66,14 +64,8 @@ class Command:
 
     @staticmethod
     def create_folders():
-        print("I AM IN CREATE_FOLDERS")
-        print("IS FILE HERE?")
-        print(os.path.exists(Command.file_name_path))
         if os.path.exists(Command.file_name_path):
-            print("I SHOULD CLEAR FOLDERS FIRST")
             Command.clear_data({"remove_all_data": False})
-        print("IS FILE STILL HERE?")
-        print(os.path.exists(Command.file_name_path))
         Command.make_folder(Command.folder_name_path)
         Command.make_folder(Command.init_folder_name_path)
         Command.make_folder(Command.map_folder_name_path)
@@ -105,7 +97,7 @@ class Command:
         for f in files:
             data_f = pd.read_csv(f, sep=field_delimiter)
 
-            for j in data_f.loc[:, group_by_key['key_name']]:
+            for j in data_f.loc[:, group_by_key]:
                 hash_key_list.append(Command.hash_f(j))
 
         return hash_key_list
@@ -115,15 +107,11 @@ class Command:
         reducer = base64.b64decode(content['reducer'])
         field_delimiter = content['field_delimiter']
         dest = content['destination_file']
-        parsed_sql = content['parsed_sql']
-        parsed_select = parsed_sql['parsed_select']
-        parsed_group_by = parsed_sql['parsed_group_by']
 
         data_frame = pd.read_csv(os.path.join(Command.shuffle_folder_name_path, 'shuffled.csv'), sep=field_delimiter)
 
         exec(reducer)
-        for i in parsed_group_by:
-            data_frame = locals()['custom_reducer'](data_frame, parsed_select, i['key_name'])
+        data_frame = locals()['custom_reducer'](data_frame)
 
         data_frame.to_csv(os.path.join(Command.reduce_folder_name_path, 'reduced.csv'), index=False,
                           sep=field_delimiter)
@@ -145,7 +133,6 @@ class Command:
         dest = content['destination_file']
         mapper = content['mapper']
         field_delimiter = content['field_delimiter']
-        parsed_select = content['parsed_select']
         file = None
         decoded_mapper = base64.b64decode(mapper)
         for f in os.listdir(Command.reduce_folder_name_path):
@@ -154,11 +141,11 @@ class Command:
 
         content = pd.read_csv(os.path.join(Command.reduce_folder_name_path, file), sep=field_delimiter)
         exec(decoded_mapper)
-        res = locals()['custom_mapper'](content, parsed_select)
+        res = locals()['custom_mapper'](content)
         res.to_csv(Command.file_name_path, index=False, mode="w", sep=field_delimiter)
 
     @staticmethod
-    def min_max_hash(hash_key_list, file_name, parsed_group_by, field_delimiter):
+    def min_max_hash(hash_key_list, file_name, key, field_delimiter):
         with open(os.path.join('config', 'data_node_info.json')) as f:
             arbiter_address = json.load(f)['arbiter_address']
 
@@ -170,7 +157,7 @@ class Command:
         diction = {
             'list_keys': res,
             'file_name': file_name,
-            'parsed_group_by': parsed_group_by,
+            'key': key,
             'field_delimiter': field_delimiter
         }
         response = requests.post(url, json=diction)
@@ -178,16 +165,13 @@ class Command:
 
     @staticmethod
     def clear_data(content):
-        print("I AM IN CLEAR_DATA")
         data = content
         remove_all = data['remove_all_data']
-        print(remove_all)
         updated_config = get_updated_config()
         if os.path.exists(updated_config['file_name_path']):
             if remove_all:
                 os.remove(updated_config['file_name_path'])
         else:
-            print("CLEAR CONFIG?")
             open(os.path.join(os.path.dirname(__file__), '..', 'config', 'updated_config.json'), 'w').close()
         if os.path.exists(updated_config['folder_name_path']):
             shutil.rmtree(updated_config['folder_name_path'])
@@ -195,8 +179,6 @@ class Command:
 
     @staticmethod
     def move_file_to_init_folder():
-        print("SHOULD I MOVE FILE?")
         if os.path.exists(Command.file_name_path):
-            print("LOOKS LIKE I SHOULD AND WILL")
             shutil.move(Command.file_name_path, os.path.join(Command.init_folder_name_path,
                                                              os.path.basename(Command.file_name_path)))

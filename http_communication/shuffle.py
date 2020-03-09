@@ -38,7 +38,7 @@ class ShuffleCommand:
 
 def shuffle(content):
     full_file_path = os.path.join(Command.shuffle_folder_name_path, 'shuffled.csv')
-    group_by_key = content['parsed_group_by']
+    group_by_key = content['key']
     field_delimiter = content['field_delimiter']
 
     files = []
@@ -54,7 +54,7 @@ def shuffle(content):
 
         for i in content['nodes_keys']:
             index_list = []
-            for index, it in enumerate(data_f.loc[:, group_by_key['key_name']]):
+            for index, it in enumerate(data_f.loc[:, group_by_key]):
 
                 if i['hash_keys_range'][1] == content['max_hash']:
                     if i['hash_keys_range'][0] <= Command.hash_f(it) <= i['hash_keys_range'][1]:

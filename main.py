@@ -1,15 +1,8 @@
-from http import server
-import json
-from multiprocessing import Process
 from receive_commands.receive_commands import Command as cmd
 from http_communication import shuffle as sf
-from flask import Flask, jsonify, request, make_response
-import base64
+from flask import Flask, jsonify, request
 import json
 import os
-import requests
-import shutil
-import moz_sql_parser as sp
 
 with open(os.path.join(os.path.dirname(__file__), "config", "config.json")) as config_file:
     config = json.load(config_file)
@@ -51,21 +44,18 @@ def finish_shuffle():
 
 @app.route("/command/min_max_hash", methods=["POST"])
 def min_max_hash():
-    print(request.json)
-
-    parsed_group_by = request.json['parsed_group_by']
     field_delimiter = request.json['field_delimiter']
+    key = request.json['key']
 
-    cmd.min_max_hash(cmd.hash_keys(parsed_group_by, field_delimiter),
+    cmd.min_max_hash(cmd.hash_keys(key, field_delimiter),
                      cmd.init_folder_name_path,
-                     parsed_group_by, field_delimiter)
+                     key, field_delimiter)
 
     return jsonify(success=True)
 
 
 @app.route("/command/clear_data", methods=["POST"])
 def clear_data():
-    # cmd.init_folder_variables(request.json["folder_name"])
     cmd.clear_data(request.json)
 
     return jsonify(success=True)
@@ -80,7 +70,6 @@ def reduce():
 
 @app.route('/command/move_file_to_init_folder', methods=['POST'])
 def move_file_to_init_folder():
-    # send_requests.send_request_to_data_nodes(request.json, 'move_file_to_init_folder')
     cmd.move_file_to_init_folder()
     return jsonify(success=True)
 
