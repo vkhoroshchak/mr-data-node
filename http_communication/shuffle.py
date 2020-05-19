@@ -8,7 +8,12 @@ import pandas as pd
 
 from receive_commands.receive_commands import Command
 
-with open(os.path.join('config', 'config.json')) as config_file:
+# uncomment for Ubuntu as it runs __file__ as ~
+os.chdir(os.path.dirname(os.path.dirname(__file__)))
+print(os.listdir(os.curdir))
+#
+
+with open(os.path.join("config", "config.json")) as config_file:
     config = json.load(config_file)
 
 with open(os.path.join('config', 'data_node_info.json')) as arbiter_node_json_data:
@@ -75,5 +80,5 @@ def shuffle(content):
                 data = {'content': data_f.iloc[index_list].to_json(),
                         'data_node_ip': i['data_node_ip']}
 
-                sc = ShuffleCommand(data, full_file_path,field_delimiter)
+                sc = ShuffleCommand(data, full_file_path, field_delimiter)
                 sc.send()
