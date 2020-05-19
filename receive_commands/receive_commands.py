@@ -133,16 +133,13 @@ class Command:
         dest = content['destination_file']
         mapper = content['mapper']
         field_delimiter = content['field_delimiter']
-        file = None
-        decoded_mapper = base64.b64decode(mapper)
-        for f in os.listdir(Command.reduce_folder_name_path):
-            if os.path.isfile(os.path.join(Command.reduce_folder_name_path, f)):
-                file = f
 
-        content = pd.read_csv(os.path.join(Command.reduce_folder_name_path, file), sep=field_delimiter)
-        exec(decoded_mapper)
-        res = locals()['custom_mapper'](content)
-        res.to_csv(Command.file_name_path, index=False, mode="w", sep=field_delimiter)
+        decoded_mapper = base64.b64decode(mapper)
+        for f in os.listdir(Command.init_folder_name_path):
+            if os.path.isfile(os.path.join(Command.init_folder_name_path, f)):
+                exec(decoded_mapper)
+                res = locals()['custom_mapper'](os.path.join(Command.init_folder_name_path, f))
+                res.to_csv(f"{Command.map_folder_name_path}{os.sep}{f}", index=False, mode="w", sep=field_delimiter)
 
     @staticmethod
     def min_max_hash(hash_key_list, file_name, key, field_delimiter):
