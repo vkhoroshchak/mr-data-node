@@ -79,7 +79,8 @@ class Command:
 
     @staticmethod
     def write(content):
-        file_name = content['file_name'].split(os.sep)[-1]
+        # file_name = content['file_name'].split(os.sep)[-1]
+        file_name = os.path.splitext(os.path.basename(content['file_name']))[0]
         path = os.path.join(Command.init_folder_name_path, file_name)
         with open(path, 'w+', encoding='utf-8') as f:
             f.write(content["segment"]["headers"])
@@ -92,7 +93,7 @@ class Command:
     @staticmethod
     def hash_keys(group_by_key, field_delimiter):
         # r=root, d=directories, f = files
-        files = [os.path.join(r, file) for r, d, f in os.walk(Command.init_folder_name_path) for file in f]
+        files = [os.path.join(r, file) for r, d, f in os.walk(Command.map_folder_name_path) for file in f]
         hash_key_list = []
         for f in files:
             data_f = pd.read_csv(f, sep=field_delimiter)
@@ -147,8 +148,8 @@ class Command:
             arbiter_address = json.load(f)['arbiter_address']
 
         res = [
-            max(hash_key_list),
-            min(hash_key_list)
+            min(hash_key_list),
+            max(hash_key_list)
         ]
         url = f'http://{arbiter_address}/command/hash'
         diction = {

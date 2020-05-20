@@ -48,7 +48,7 @@ def min_max_hash():
     key = request.json['key']
 
     cmd.min_max_hash(cmd.hash_keys(key, field_delimiter),
-                     cmd.init_folder_name_path,
+                     cmd.map_folder_name_path,
                      key, field_delimiter)
 
     return jsonify(success=True)

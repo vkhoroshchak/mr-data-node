@@ -49,7 +49,7 @@ def shuffle(content):
     files = []
 
     # r=root, d=directories, f = files
-    for r, d, f in os.walk(Command.init_folder_name_path):
+    for r, d, f in os.walk(Command.map_folder_name_path):
         for file in f:
             files.append(os.path.join(r, file))
 
@@ -59,15 +59,23 @@ def shuffle(content):
 
         for i in content['nodes_keys']:
             index_list = []
-            for index, it in enumerate(data_f.loc[:, group_by_key]):
+            for index, item in enumerate(data_f.loc[:, group_by_key]):
 
-                if i['hash_keys_range'][1] == content['max_hash']:
-                    if i['hash_keys_range'][0] <= Command.hash_f(it) <= i['hash_keys_range'][1]:
-                        index_list.append(index)
+                min, max = i["hash_keys_range"]
+                last_node = max == content['max_hash']
+                hash_item = Command.hash_f(item)
+                hash_item_in_range = min <= hash_item < max
+                if hash_item_in_range:
+                    index_list.append(index)
+                elif hash_item == max and last_node:
+                    index_list.append(index)
 
-                else:
-                    if i['hash_keys_range'][0] <= Command.hash_f(it) < i['hash_keys_range'][1]:
-                        index_list.append(index)
+                # if last_node:
+                #     if min <= hash_item <= max:
+                #         index_list.append(index)
+                # else:
+                #     if min <= hash_item < max:
+                #         index_list.append(index)
 
             if i['data_node_ip'] == self_node_ip:
                 if not os.path.isfile(full_file_path):
