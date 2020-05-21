@@ -70,7 +70,7 @@ def reduce():
 
 @app.route('/command/move_file_to_init_folder', methods=['POST'])
 def move_file_to_init_folder():
-    cmd.move_file_to_init_folder()
+    cmd.move_file_to_init_folder(request.json)
     return jsonify(success=True)
 
 

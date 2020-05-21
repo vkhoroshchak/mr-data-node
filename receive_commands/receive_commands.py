@@ -17,11 +17,24 @@ import moz_sql_parser as sp
 with open(os.path.join(os.path.dirname(__file__), '..', 'config', 'config.json')) as config_file:
     config = json.load(config_file)
 
+updated_config_path = os.path.join(os.path.dirname(__file__), '..', 'config', 'updated_config.json')
+
 
 def get_updated_config():
-    with open(os.path.join(os.path.dirname(__file__), '..', 'config', 'updated_config.json')) as updated_config_file:
-        updated_config = json.load(updated_config_file)
+    with open(updated_config_path) as f:
+        updated_config = json.load(f)
     return updated_config
+
+
+def save_changes_to_updated_config(updated_config):
+    with open(updated_config_path, 'w') as f:
+        json.dump(updated_config, f, indent=4)
+
+
+def get_file_paths(file_name):
+    for item in get_updated_config()['files']:
+        if item['file_name'] == file_name:
+            return item
 
 
 class Command:
@@ -49,18 +62,19 @@ class Command:
                                                         folder_format.format(config['shuffle_folder_name']))
         Command.map_folder_name_path = os.path.join(Command.folder_name_path,
                                                     folder_format.format(config['map_folder_name']))
-        with open(os.path.join(os.path.dirname(__file__), '..', 'config', 'updated_config.json'), 'w') \
-                as updated_config:
-            diction = {
-                "data_folder_name_path": Command.data_folder_name_path,
-                "file_name_path": Command.file_name_path,
-                "folder_name_path": Command.folder_name_path,
-                "init_folder_name_path": Command.init_folder_name_path,
-                "reduce_folder_name_path": Command.reduce_folder_name_path,
-                "shuffle_folder_name_path": Command.shuffle_folder_name_path,
-                "map_folder_name_path": Command.map_folder_name_path
-            }
-            json.dump(diction, updated_config, indent=4)
+        updated_config = get_updated_config()
+        file_paths_info = {
+            "file_name": file_name,
+            "data_folder_name_path": Command.data_folder_name_path,
+            "file_name_path": Command.file_name_path,
+            "folder_name_path": Command.folder_name_path,
+            "init_folder_name_path": Command.init_folder_name_path,
+            "reduce_folder_name_path": Command.reduce_folder_name_path,
+            "shuffle_folder_name_path": Command.shuffle_folder_name_path,
+            "map_folder_name_path": Command.map_folder_name_path
+        }
+        updated_config['files'].append(file_paths_info)
+        save_changes_to_updated_config(updated_config)
 
     @staticmethod
     def create_folders():
@@ -108,13 +122,23 @@ class Command:
         reducer = base64.b64decode(content['reducer'])
         field_delimiter = content['field_delimiter']
         dest = content['destination_file']
+        file_path = os.path.join(Command.shuffle_folder_name_path, 'shuffled.csv')
+        if ',' in content['source_file']:
+            first_file_path, second_file_path = content['source_file'].split(',')
 
-        data_frame = pd.read_csv(os.path.join(Command.shuffle_folder_name_path, 'shuffled.csv'), sep=field_delimiter)
+            first_file_paths = get_file_paths(first_file_path)
+
+            first_shuffle_file_path = os.path.join(first_file_paths['shuffle_folder_name_path'], 'shuffled.csv')
+            second_file_paths = get_file_paths(second_file_path)
+
+            second_shuffle_file_path = os.path.join(second_file_paths['shuffle_folder_name_path'], 'shuffled.csv')
+            file_path = (first_shuffle_file_path, second_shuffle_file_path)
+
 
         exec(reducer)
-        data_frame = locals()['custom_reducer'](data_frame)
+        data_frame = locals()['custom_reducer'](file_path)
 
-        data_frame.to_csv(os.path.join(Command.reduce_folder_name_path, 'reduced.csv'), index=False,
+        data_frame.to_csv(os.path.join(first_file_paths['reduce_folder_name_path'], 'reduced.csv'), index=False,
                           sep=field_delimiter)
 
     @staticmethod
@@ -163,20 +187,23 @@ class Command:
 
     @staticmethod
     def clear_data(content):
-        data = content
-        remove_all = data['remove_all_data']
+        file_name = content['folder_name']
+        remove_all = content['remove_all_data']
         updated_config = get_updated_config()
-        if os.path.exists(updated_config['file_name_path']):
-            if remove_all:
-                os.remove(updated_config['file_name_path'])
-        else:
-            open(os.path.join(os.path.dirname(__file__), '..', 'config', 'updated_config.json'), 'w').close()
-        if os.path.exists(updated_config['folder_name_path']):
-            shutil.rmtree(updated_config['folder_name_path'])
 
+        for item in updated_config['files']:
+            if item["file_name"] == file_name:
+                if os.path.exists(item['file_name_path']):
+                    if remove_all:
+                        os.remove(item['file_name_path'])
+                else:
+                    updated_config['files'].remove(item)
+                    if os.path.exists(item['folder_name_path']):
+                        shutil.rmtree(item['folder_name_path'])
+                save_changes_to_updated_config(updated_config)
 
     @staticmethod
-    def move_file_to_init_folder():
+    def move_file_to_init_folder(content):
         if os.path.exists(Command.file_name_path):
             shutil.move(Command.file_name_path, os.path.join(Command.init_folder_name_path,
                                                              os.path.basename(Command.file_name_path)))
