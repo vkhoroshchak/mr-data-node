@@ -93,8 +93,7 @@ class Command:
 
     @staticmethod
     def write(content):
-        # file_name = content['file_name'].split(os.sep)[-1]
-        file_name = os.path.splitext(os.path.basename(content['file_name']))[0]
+        file_name = content["file_name"]
         path = os.path.join(Command.init_folder_name_path, file_name)
         with open(path, 'w+', encoding='utf-8') as f:
             f.write(content["segment"]["headers"])
