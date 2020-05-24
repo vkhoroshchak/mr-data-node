@@ -45,11 +45,8 @@ def finish_shuffle():
 @app.route("/command/min_max_hash", methods=["POST"])
 def min_max_hash():
     field_delimiter = request.json['field_delimiter']
-    key = request.json['key']
 
-    cmd.min_max_hash(cmd.hash_keys(key, field_delimiter),
-                     cmd.map_folder_name_path,
-                     key, field_delimiter)
+    cmd.min_max_hash(cmd.hash_keys(field_delimiter), cmd.map_folder_name_path, field_delimiter)
 
     return jsonify(success=True)
 

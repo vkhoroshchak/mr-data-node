@@ -43,7 +43,6 @@ class ShuffleCommand:
 
 def shuffle(content):
     full_file_path = os.path.join(Command.shuffle_folder_name_path, 'shuffled.csv')
-    group_by_key = content['key']
     field_delimiter = content['field_delimiter']
 
     files = []
@@ -59,7 +58,7 @@ def shuffle(content):
 
         for i in content['nodes_keys']:
             index_list = []
-            for index, item in enumerate(data_f.loc[:, group_by_key]):
+            for index, item in enumerate(data_f.loc[:, 'key_column']):
 
                 min, max = i["hash_keys_range"]
                 last_node = max == content['max_hash']
@@ -69,13 +68,6 @@ def shuffle(content):
                     index_list.append(index)
                 elif hash_item == max and last_node:
                     index_list.append(index)
-
-                # if last_node:
-                #     if min <= hash_item <= max:
-                #         index_list.append(index)
-                # else:
-                #     if min <= hash_item < max:
-                #         index_list.append(index)
 
             if i['data_node_ip'] == self_node_ip:
                 if not os.path.isfile(full_file_path):

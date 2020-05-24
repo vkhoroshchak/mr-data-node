@@ -33,7 +33,7 @@ def save_changes_to_updated_config(updated_config):
 
 def get_file_paths(file_name):
     for item in get_updated_config()['files']:
-        if item['file_name'] == file_name:
+        if item['file_name'] == os.path.basename(file_name):
             return item
 
 
@@ -104,14 +104,14 @@ class Command:
         return hash(input)
 
     @staticmethod
-    def hash_keys(group_by_key, field_delimiter):
+    def hash_keys(field_delimiter):
         # r=root, d=directories, f = files
         files = [os.path.join(r, file) for r, d, f in os.walk(Command.map_folder_name_path) for file in f]
         hash_key_list = []
         for f in files:
             data_f = pd.read_csv(f, sep=field_delimiter)
 
-            for j in data_f.loc[:, group_by_key]:
+            for j in data_f.loc[:, "key_column"]:
                 hash_key_list.append(Command.hash_f(j))
 
         return hash_key_list
@@ -122,6 +122,7 @@ class Command:
         field_delimiter = content['field_delimiter']
         dest = content['destination_file']
         file_path = os.path.join(Command.shuffle_folder_name_path, 'shuffled.csv')
+        first_file_paths = get_file_paths(content["source_file"])
         if ',' in content['source_file']:
             first_file_path, second_file_path = content['source_file'].split(',')
 
@@ -133,12 +134,9 @@ class Command:
             second_shuffle_file_path = os.path.join(second_file_paths['shuffle_folder_name_path'], 'shuffled.csv')
             file_path = (first_shuffle_file_path, second_shuffle_file_path)
 
-
         exec(reducer)
-        data_frame = locals()['custom_reducer'](file_path)
-
-        data_frame.to_csv(os.path.join(first_file_paths['reduce_folder_name_path'], 'reduced.csv'), index=False,
-                          sep=field_delimiter)
+        destination_file_path = os.path.join(first_file_paths['reduce_folder_name_path'], 'reduced.csv')
+        locals()['custom_reducer'](file_path, destination_file_path)
 
     @staticmethod
     def finish_shuffle(content):
@@ -166,7 +164,7 @@ class Command:
                 res.to_csv(f"{Command.map_folder_name_path}{os.sep}{f}", index=False, mode="w", sep=field_delimiter)
 
     @staticmethod
-    def min_max_hash(hash_key_list, file_name, key, field_delimiter):
+    def min_max_hash(hash_key_list, file_name, field_delimiter):
         with open(os.path.join('config', 'data_node_info.json')) as f:
             arbiter_address = json.load(f)['arbiter_address']
 
@@ -178,7 +176,6 @@ class Command:
         diction = {
             'list_keys': res,
             'file_name': file_name,
-            'key': key,
             'field_delimiter': field_delimiter
         }
         response = requests.post(url, json=diction)
