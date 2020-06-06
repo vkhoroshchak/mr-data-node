@@ -73,13 +73,18 @@ class Command:
             "shuffle_folder_name_path": Command.shuffle_folder_name_path,
             "map_folder_name_path": Command.map_folder_name_path
         }
-        updated_config['files'].append(file_paths_info)
+        if not file_paths_info in updated_config["files"]:
+            updated_config['files'].append(file_paths_info)
         save_changes_to_updated_config(updated_config)
 
     @staticmethod
     def create_folders():
+        print("file_name_path".upper())
+        print(Command.file_name_path)
+        print("file_name_path".upper())
         if os.path.exists(Command.file_name_path):
-            Command.clear_data({"remove_all_data": False})
+            print("EXISTS")
+            Command.clear_data({"folder_name": os.path.basename(Command.file_name_path), "remove_all_data": False})
         Command.make_folder(Command.folder_name_path)
         Command.make_folder(Command.init_folder_name_path)
         Command.make_folder(Command.map_folder_name_path)
@@ -135,7 +140,9 @@ class Command:
             file_path = (first_shuffle_file_path, second_shuffle_file_path)
 
         exec(reducer)
-        destination_file_path = os.path.join(first_file_paths['reduce_folder_name_path'], 'reduced.csv')
+        # destination_file_path = os.path.join(first_file_paths['reduce_folder_name_path'], 'reduced.csv')
+        destination_file_path = os.path.join(first_file_paths["data_folder_name_path"], first_file_paths["file_name"])
+        print(destination_file_path)
         locals()['custom_reducer'](file_path, destination_file_path)
 
     @staticmethod
@@ -186,16 +193,25 @@ class Command:
         file_name = content['folder_name']
         remove_all = content['remove_all_data']
         updated_config = get_updated_config()
+        print("REMOVE ALL:")
+        print(remove_all)
+        print(updated_config['files'])
+        print(os.getcwd())
 
         for item in updated_config['files']:
+            print(item["file_name"])
+            print(file_name)
+            print(item["file_name"] == file_name)
             if item["file_name"] == file_name:
+                print(item["file_name_path"])
+                print(os.path.exists(item['file_name_path']))
                 if os.path.exists(item['file_name_path']):
                     if remove_all:
                         os.remove(item['file_name_path'])
                 else:
                     updated_config['files'].remove(item)
-                    if os.path.exists(item['folder_name_path']):
-                        shutil.rmtree(item['folder_name_path'])
+                if os.path.exists(item['folder_name_path']):
+                    shutil.rmtree(item['folder_name_path'])
                 save_changes_to_updated_config(updated_config)
 
     @staticmethod
