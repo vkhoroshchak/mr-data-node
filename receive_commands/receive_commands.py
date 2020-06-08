@@ -1,18 +1,9 @@
-"""
-File where data node receives requests from management node about:
-1) file(segment) creation
-2) map() method start
-3) shuffle() method start (where necessary)
-4) reduce() method start
-5) request to return a status(if works) and file size
-"""
 import base64
 import json
 import os
 import requests
 import shutil
 import pandas as pd
-import moz_sql_parser as sp
 
 with open(os.path.join(os.path.dirname(__file__), '..', 'config', 'config.json')) as config_file:
     config = json.load(config_file)
@@ -79,11 +70,7 @@ class Command:
 
     @staticmethod
     def create_folders():
-        print("file_name_path".upper())
-        print(Command.file_name_path)
-        print("file_name_path".upper())
         if os.path.exists(Command.file_name_path):
-            print("EXISTS")
             Command.clear_data({"folder_name": os.path.basename(Command.file_name_path), "remove_all_data": False})
         Command.make_folder(Command.folder_name_path)
         Command.make_folder(Command.init_folder_name_path)
@@ -140,9 +127,8 @@ class Command:
             file_path = (first_shuffle_file_path, second_shuffle_file_path)
 
         exec(reducer)
-        # destination_file_path = os.path.join(first_file_paths['reduce_folder_name_path'], 'reduced.csv')
+
         destination_file_path = os.path.join(first_file_paths["data_folder_name_path"], first_file_paths["file_name"])
-        print(destination_file_path)
         locals()['custom_reducer'](file_path, destination_file_path)
 
     @staticmethod
@@ -193,18 +179,9 @@ class Command:
         file_name = content['folder_name']
         remove_all = content['remove_all_data']
         updated_config = get_updated_config()
-        print("REMOVE ALL:")
-        print(remove_all)
-        print(updated_config['files'])
-        print(os.getcwd())
 
         for item in updated_config['files']:
-            print(item["file_name"])
-            print(file_name)
-            print(item["file_name"] == file_name)
             if item["file_name"] == file_name:
-                print(item["file_name_path"])
-                print(os.path.exists(item['file_name_path']))
                 if os.path.exists(item['file_name_path']):
                     if remove_all:
                         os.remove(item['file_name_path'])
@@ -223,24 +200,9 @@ class Command:
     @staticmethod
     def get_file_from_cluster(context):
         file_name = context['file_name']
-        # content = context['content']
         file_name_path = os.path.join(Command.data_folder_name_path, file_name)
         if os.path.exists(file_name_path):
             content_json = pd.read_csv(file_name_path).to_json()
-            print("CONTENT_JSON")
-            print(content_json)
-            # t = json.loads(content)
-            # print("T")
-            # print(t)
-            # if t == {}:
-            #     t = content_json
-            # else:
-            #     t.update(content_json)
-            # print("T UPDATED:")
-            # print(t)
-            # content = json.dumps(t)
-            # print("CONTENT")
-            # print(content)
             with open(os.path.join('config', 'data_node_info.json')) as f:
                 arbiter_address = json.load(f)['arbiter_address']
                 url = f'http://{arbiter_address}/command/finish_get_file_from_cluster'

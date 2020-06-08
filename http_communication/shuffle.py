@@ -1,6 +1,3 @@
-'''
-File where shuffle() method is implemented
-'''
 import json
 import os
 import requests
@@ -10,8 +7,8 @@ from receive_commands.receive_commands import Command
 
 # uncomment for Ubuntu as it runs __file__ as ~
 os.chdir(os.path.dirname(os.path.dirname(__file__)))
-print(os.listdir(os.curdir))
-#
+
+
 
 with open(os.path.join("config", "config.json")) as config_file:
     config = json.load(config_file)
@@ -19,8 +16,6 @@ with open(os.path.join("config", "config.json")) as config_file:
 with open(os.path.join('config', 'data_node_info.json')) as arbiter_node_json_data:
     self_node_ip = json.load(arbiter_node_json_data)['self_address']
 
-
-# TODO: simplify dict use
 class ShuffleCommand:
     def __init__(self, data, file_path, field_delimiter):
         self._data = {
