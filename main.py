@@ -1,72 +1,81 @@
-from http import server
-import json
-from multiprocessing import Process
 from receive_commands.receive_commands import Command as cmd
-from http_communication import shuffle
+from http_communication import shuffle as sf
+from flask import Flask, jsonify, request
+import json
+import os
+
+with open(os.path.join(os.path.dirname(__file__), "config", "config.json")) as config_file:
+    config = json.load(config_file)
+
+app = Flask(__name__)
 
 
-class Handler(server.BaseHTTPRequestHandler):
-    def do_POST(self):
-        self.send_response(200)
-        self.end_headers()
-        body_length = int(self.headers['content-length'])
-        request_body_json_string = self.rfile.read(body_length).decode('utf-8')
-
-        # Printing  some info to the server console
-        # print('Server on port ' + str(self.server.server_port) + ' - request body: ' + request_body_json_string)
-
-        json_data_obj = json.loads(request_body_json_string)
-        json_data_obj['SEEN_BY_THE_SERVER'] = 'Yes'
-
-        # print(request_body_json_string)
-
-        self.wfile.write(bytes(json.dumps(self.recognize_command(json_data_obj)), 'utf-8'))
-
-    # TODO: try use **kwargs
-    def recognize_command(self, content):
-        json_data_obj = {}
-        if 'make_file' in content:
-            json_data_obj = content['make_file']
-            cmd.init_folder_variables(json_data_obj['file_name'])
-            cmd.create_dest_file(json_data_obj["file_name"])
-        elif 'write' in content:
-            json_data_obj = content['write']
-            cmd.write(json_data_obj)
-        elif 'map' in content:
-            json_data_obj = content['map']
-            json_data_obj['destination_file'] = cmd.map(json_data_obj)
-            cmd.min_max_hash(cmd.hash_keys(json_data_obj['destination_file']), json_data_obj['destination_file'])
-        elif 'shuffle' in content:
-            shuffle.shuffle(content['shuffle'])
-        elif 'reduce' in content:
-            cmd.reduce(content['reduce'])
-        elif 'finish_shuffle' in content:
-            cmd.finish_shuffle(content)
-        elif 'clear_data' in content:
-            cmd.init_folder_variables(content['clear_data']['folder_name'])
-            cmd.clear_data(content)
-        elif 'get_file' in content:
-            json_data_obj.clear()
-            json_data_obj['file'] = cmd.get_file(content['get_file'])
-        elif 'get_hash_of_key' in content:
-            json_data_obj.clear()
-            json_data_obj['key_hash'] = cmd.hash_f(content['get_hash_of_key'])
-        elif 'get_result_of_key' in content:
-            json_data_obj.clear()
-            json_data_obj['result'] = cmd.get_result_of_key(content['get_result_of_key'])
-        return json_data_obj
+@app.route("/command/create_config_and_filesystem", methods=["POST"])
+def create_config_and_filesystem():
+    file_name = request.json["file_name"]
+    cmd.init_folder_variables(file_name)
+    cmd.create_folders()
+    return jsonify(success=True)
 
 
-def start_server(server_address):
-    my_server = server.ThreadingHTTPServer(server_address, Handler)
-    print(str(server_address) + ' Waiting for POST requests...')
-    my_server.serve_forever()
+@app.route("/command/write", methods=["POST"])
+def write():
+    cmd.write(request.json)
+    return jsonify(success=True)
 
 
-def start_local_server_on_port(port):
-    p = Process(target=start_server, args=(('127.0.0.1', port),))
-    p.start()
+@app.route("/command/map", methods=["POST"])
+def map():
+    response = {'mapped_folder_name': cmd.map(request.json)}
+    return jsonify(response)
 
 
-if __name__ == '__main__':
-    start_local_server_on_port(8014)
+@app.route("/command/shuffle", methods=["POST"])
+def shuffle():
+    sf.shuffle(request.json)
+    return jsonify(success=True)
+
+
+@app.route("/command/finish_shuffle", methods=["POST"])
+def finish_shuffle():
+    cmd.finish_shuffle(request.json)
+    return jsonify(success=True)
+
+
+@app.route("/command/min_max_hash", methods=["POST"])
+def min_max_hash():
+    field_delimiter = request.json['field_delimiter']
+
+    cmd.min_max_hash(cmd.hash_keys(field_delimiter), cmd.map_folder_name_path, field_delimiter)
+
+    return jsonify(success=True)
+
+
+@app.route("/command/clear_data", methods=["POST"])
+def clear_data():
+    cmd.clear_data(request.json)
+
+    return jsonify(success=True)
+
+
+@app.route("/command/reduce", methods=["POST"])
+def reduce():
+    cmd.reduce(request.json)
+
+    return jsonify(success=True)
+
+
+@app.route('/command/move_file_to_init_folder', methods=['POST'])
+def move_file_to_init_folder():
+    cmd.move_file_to_init_folder(request.json)
+    return jsonify(success=True)
+
+
+@app.route('/command/get_file_from_cluster', methods=['POST'])
+def get_file_from_cluster():
+    cmd.get_file_from_cluster(request.json)
+    return jsonify(success=True)
+
+
+if __name__ == "__main__":
+    app.run(host="127.0.0.1", port=5002, debug=True, use_reloader=False)
