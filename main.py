@@ -74,5 +74,13 @@ def move_file_to_init_folder():
     return jsonify(success=True)
 
 
+@app.route('/command/get_file_from_cluster', methods=['POST'])
+def get_file_from_cluster():
+    # response = {'result_file': cmd.get_file_from_cluster(request.json)}
+    # return jsonify(response)
+    cmd.get_file_from_cluster(request.json)
+    return jsonify(success=True)
+
+
 if __name__ == "__main__":
     app.run(host="127.0.0.1", port=5002, debug=True, use_reloader=False)

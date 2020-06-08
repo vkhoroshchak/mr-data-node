@@ -219,3 +219,35 @@ class Command:
         if os.path.exists(Command.file_name_path):
             shutil.move(Command.file_name_path, os.path.join(Command.init_folder_name_path,
                                                              os.path.basename(Command.file_name_path)))
+
+    @staticmethod
+    def get_file_from_cluster(context):
+        file_name = context['file_name']
+        # content = context['content']
+        file_name_path = os.path.join(Command.data_folder_name_path, file_name)
+        if os.path.exists(file_name_path):
+            content_json = pd.read_csv(file_name_path).to_json()
+            print("CONTENT_JSON")
+            print(content_json)
+            # t = json.loads(content)
+            # print("T")
+            # print(t)
+            # if t == {}:
+            #     t = content_json
+            # else:
+            #     t.update(content_json)
+            # print("T UPDATED:")
+            # print(t)
+            # content = json.dumps(t)
+            # print("CONTENT")
+            # print(content)
+            with open(os.path.join('config', 'data_node_info.json')) as f:
+                arbiter_address = json.load(f)['arbiter_address']
+                url = f'http://{arbiter_address}/command/finish_get_file_from_cluster'
+                diction = {
+                    'content': content_json,
+                    'file_name': file_name,
+                    'dest_file_name': context['dest_file_name']
+                }
+                response = requests.post(url, json=diction)
+            return response
