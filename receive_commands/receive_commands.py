@@ -64,7 +64,7 @@ class Command:
             "shuffle_folder_name_path": Command.shuffle_folder_name_path,
             "map_folder_name_path": Command.map_folder_name_path
         }
-        if not file_paths_info in updated_config["files"]:
+        if file_paths_info not in updated_config["files"]:
             updated_config['files'].append(file_paths_info)
         save_changes_to_updated_config(updated_config)
 
@@ -192,7 +192,7 @@ class Command:
                 save_changes_to_updated_config(updated_config)
 
     @staticmethod
-    def move_file_to_init_folder(content):
+    def move_file_to_init_folder():
         if os.path.exists(Command.file_name_path):
             shutil.move(Command.file_name_path, os.path.join(Command.init_folder_name_path,
                                                              os.path.basename(Command.file_name_path)))
