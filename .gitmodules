@@ -1,0 +1,4 @@
+[submodule "swarm-mr-data-node"]
+	path = swarm-mr-data-node
+	url = C:/Program Files/Git/workspace/swarm-mr-data-node
+	branch = data-node
