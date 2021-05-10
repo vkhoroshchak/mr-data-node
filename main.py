@@ -20,7 +20,7 @@ with open(os.path.join(os.path.dirname(__file__), "config", "config.json")) as c
 async def create_config_and_filesystem(content: dict):
     # file_name = request.json["file_name"]
     cmd.init_folder_variables(content.get("file_name"), content.get("file_id"))
-    cmd.create_folders()
+    cmd.create_folders(content.get("file_name"))
     return JSONResponse("Config and filesystem created!")
 
 
