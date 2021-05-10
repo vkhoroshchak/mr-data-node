@@ -87,9 +87,10 @@ class Command:
     def write(content):
         file_name = content["file_name"]
         path = os.path.join(Command.init_folder_name_path, file_name)
-        with open(path, 'wb+', encoding='utf-8') as f:
-            f.write(content["segment"]["headers"])
-            f.writelines(content['segment']["items"])
+        # with open(path, 'wb+', encoding='utf-8') as f:
+        with open(path, 'wb+') as f:
+            f.write(str.encode(content["segment"]["headers"]))
+            f.writelines([str.encode(x) for x in content['segment']["items"]])
 
     @staticmethod
     def hash_f(input):

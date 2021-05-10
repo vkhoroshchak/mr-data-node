@@ -16,10 +16,10 @@ with open(os.path.join(os.path.dirname(__file__), "config", "config.json")) as c
 
 
 @app.post("/command/create_config_and_filesystem")
-async def create_config_and_filesystem(file_name: str):
+async def create_config_and_filesystem(content: dict):
     # file_name = request.json["file_name"]
-    await cmd.init_folder_variables(file_name)
-    await cmd.create_folders()
+    cmd.init_folder_variables(content.get("file_name"))
+    cmd.create_folders()
     return JSONResponse("Config and filesystem created!")
 
 
