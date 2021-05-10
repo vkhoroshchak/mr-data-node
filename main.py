@@ -1,13 +1,14 @@
-from receive_commands.receive_commands import Command as cmd
-from http_communication import shuffle as sf
 import json
 import os
+from typing import Union
 
 from fastapi import (
     FastAPI,
 )
-
 from fastapi.responses import JSONResponse
+
+from http_communication import shuffle as sf
+from receive_commands.receive_commands import Command as cmd
 
 app = FastAPI()
 
@@ -18,7 +19,7 @@ with open(os.path.join(os.path.dirname(__file__), "config", "config.json")) as c
 @app.post("/command/create_config_and_filesystem")
 async def create_config_and_filesystem(content: dict):
     # file_name = request.json["file_name"]
-    cmd.init_folder_variables(content.get("file_name"))
+    cmd.init_folder_variables(content.get("file_name"), content.get("file_id"))
     cmd.create_folders()
     return JSONResponse("Config and filesystem created!")
 
@@ -31,6 +32,14 @@ def write(content: dict):
 
 @app.post("/command/map")
 def map(content: dict):
+    # deserialized_content = json.loads(content)
+    print(35)
+    print(content)
+    print(type(content))
+    print(35)
+    # print(deserialized_content)
+    # print(type(deserialized_content))
+    print(35)
     response = {'mapped_folder_name': cmd.map(content)}
     return JSONResponse(response)
 

@@ -27,6 +27,11 @@ def get_file_paths(file_name):
         if item['file_name'] == os.path.basename(file_name):
             return item
 
+# def get_file_paths(file_id):
+#     for item in get_updated_config()['files']:
+#         if item['file_id'] == file_id:
+#             return item
+
 
 class Command:
     file_name_path = None
@@ -38,7 +43,7 @@ class Command:
     data_folder_name_path = None
 
     @staticmethod
-    def init_folder_variables(file_name):
+    def init_folder_variables(file_name, file_id):
         name, extension = os.path.splitext(file_name)
         folder_format = name + config['name_delimiter'] + '{}' + extension
         Command.data_folder_name_path = config['data_folder_name']
@@ -54,18 +59,26 @@ class Command:
         Command.map_folder_name_path = os.path.join(Command.folder_name_path,
                                                     folder_format.format(config['map_folder_name']))
         updated_config = get_updated_config()
-        file_paths_info = {
-            "file_name": file_name,
-            "data_folder_name_path": Command.data_folder_name_path,
-            "file_name_path": Command.file_name_path,
-            "folder_name_path": Command.folder_name_path,
-            "init_folder_name_path": Command.init_folder_name_path,
-            "reduce_folder_name_path": Command.reduce_folder_name_path,
-            "shuffle_folder_name_path": Command.shuffle_folder_name_path,
-            "map_folder_name_path": Command.map_folder_name_path
+        # file_paths_info = {
+        #     "file_name": file_name,
+        #     "data_folder_name_path": Command.data_folder_name_path,
+        #     "file_name_path": Command.file_name_path,
+        #     "folder_name_path": Command.folder_name_path,
+        #     "init_folder_name_path": Command.init_folder_name_path,
+        #     "reduce_folder_name_path": Command.reduce_folder_name_path,
+        #     "shuffle_folder_name_path": Command.shuffle_folder_name_path,
+        #     "map_folder_name_path": Command.map_folder_name_path
+        # }
+        # if file_paths_info not in updated_config["files"]:
+        #     updated_config['files'].append(file_paths_info)
+
+        new_file_paths_info = {
+            "file_id": file_id
         }
-        if file_paths_info not in updated_config["files"]:
-            updated_config['files'].append(file_paths_info)
+
+        if new_file_paths_info not in updated_config["files"]:
+            updated_config["files"].append(new_file_paths_info)
+
         save_changes_to_updated_config(updated_config)
 
     @staticmethod
@@ -87,7 +100,6 @@ class Command:
     def write(content):
         file_name = content["file_name"]
         path = os.path.join(Command.init_folder_name_path, file_name)
-        # with open(path, 'wb+', encoding='utf-8') as f:
         with open(path, 'wb+') as f:
             f.write(str.encode(content["segment"]["headers"]))
             f.writelines([str.encode(x) for x in content['segment']["items"]])
@@ -113,9 +125,10 @@ class Command:
     def reduce(content):
         reducer = base64.b64decode(content['reducer'])
         field_delimiter = content['field_delimiter']
-        dest = content['destination_file']
+        # dest = content['destination_file']
         file_path = os.path.join(Command.shuffle_folder_name_path, 'shuffled.csv')
         first_file_paths = get_file_paths(content["source_file"])
+        # first_file_paths = get_file_paths(content["file_id"])
         if ',' in content['source_file']:
             first_file_path, second_file_path = content['source_file'].split(',')
 
@@ -146,7 +159,7 @@ class Command:
 
     @staticmethod
     def map(content):
-        dest = content['destination_file']
+        # dest = content['destination_file']
         mapper = content['mapper']
         field_delimiter = content['field_delimiter']
 
