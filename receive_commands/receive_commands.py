@@ -56,16 +56,19 @@ class Command:
             "folder_name_path": os.path.join(config['data_folder_name'],
                                              folder_format.format(config['folder_name'])),
         }
-        Command.paths_per_file_name[file_name] = {
-            "init_folder_name_path": os.path.join(Command.paths_per_file_name[file_name]["folder_name_path"],
-                                                  folder_format.format(config['init_folder_name'])),
-            "reduce_folder_name_path": os.path.join(Command.paths_per_file_name[file_name]["folder_name_path"],
-                                                    folder_format.format(config['reduce_folder_name'])),
-            "shuffle_folder_name_path": os.path.join(Command.paths_per_file_name[file_name]["folder_name_path"],
-                                                     folder_format.format(config['shuffle_folder_name'])),
-            "map_folder_name_path": os.path.join(Command.paths_per_file_name[file_name]["folder_name_path"],
-                                                 folder_format.format(config['map_folder_name'])),
-        }
+
+        Command.paths_per_file_name[file_name].update(
+            {
+                "init_folder_name_path": os.path.join(Command.paths_per_file_name[file_name]["folder_name_path"],
+                                                      folder_format.format(config['init_folder_name'])),
+                "reduce_folder_name_path": os.path.join(Command.paths_per_file_name[file_name]["folder_name_path"],
+                                                        folder_format.format(config['reduce_folder_name'])),
+                "shuffle_folder_name_path": os.path.join(Command.paths_per_file_name[file_name]["folder_name_path"],
+                                                         folder_format.format(config['shuffle_folder_name'])),
+                "map_folder_name_path": os.path.join(Command.paths_per_file_name[file_name]["folder_name_path"],
+                                                     folder_format.format(config['map_folder_name'])),
+            }
+        )
         # Command.paths_per_file_name[file_name].data_folder_name_path = config['data_folder_name']
         # Command.paths_per_file_name[file_name].file_name_path = os.path.join(Command.data_folder_name_path, file_name)
         # Command.paths_per_file_name[file_name].folder_name_path = os.path.join(Command.data_folder_name_path,
@@ -93,6 +96,7 @@ class Command:
             "shuffle_folder_name_path": Command.paths_per_file_name[file_name]["shuffle_folder_name_path"],
             "map_folder_name_path": Command.paths_per_file_name[file_name]["map_folder_name_path"],
         }
+
         if file_paths_info not in updated_config["files"]:
             updated_config['files'].append(file_paths_info)
 
@@ -140,9 +144,10 @@ class Command:
         return hash(input)
 
     @staticmethod
-    def hash_keys(field_delimiter):
+    def hash_keys(field_delimiter, file_name):
         # r=root, d=directories, f = files
-        files = [os.path.join(r, file) for r, d, f in os.walk(Command.map_folder_name_path) for file in f]
+        files = [os.path.join(r, file) for r, d, f
+                 in os.walk(Command.paths_per_file_name[file_name]["map_folder_name_path"]) for file in f]
         hash_key_list = []
         for f in files:
             data_f = pd.read_csv(f, sep=field_delimiter)
@@ -157,11 +162,12 @@ class Command:
         reducer = base64.b64decode(content['reducer'])
         field_delimiter = content['field_delimiter']
         # dest = content['destination_file']
-        file_path = os.path.join(Command.shuffle_folder_name_path, 'shuffled.csv')
-        first_file_paths = get_file_paths(content["source_file"])
+        file_name = content["source_file"]
+        file_path = os.path.join(Command.paths_per_file_name[file_name]["shuffle_folder_name_path"], 'shuffled.csv')
+        first_file_paths = get_file_paths(file_name)
         # first_file_paths = get_file_paths(content["file_id"])
-        if ',' in content['source_file']:
-            first_file_path, second_file_path = content['source_file'].split(',')
+        if ',' in file_name:
+            first_file_path, second_file_path = file_name.split(',')
 
             first_file_paths = get_file_paths(first_file_path)
 
@@ -193,16 +199,17 @@ class Command:
         # dest = content['destination_file']
         mapper = content['mapper']
         field_delimiter = content['field_delimiter']
+        file_name = content["source_file"]
 
         decoded_mapper = base64.b64decode(mapper)
-        print(168)
-        print(Command.init_folder_name_path)
-        print(168)
-        for f in os.listdir(Command.init_folder_name_path):
-            if os.path.isfile(os.path.join(Command.init_folder_name_path, f)):
+
+        for f in os.listdir(Command.paths_per_file_name[file_name]["init_folder_name_path"]):
+            if os.path.isfile(os.path.join(Command.paths_per_file_name[file_name]["init_folder_name_path"], f)):
                 exec(decoded_mapper)
-                res = locals()['custom_mapper'](os.path.join(Command.init_folder_name_path, f))
-                res.to_csv(f"{Command.map_folder_name_path}{os.sep}{f}", index=False, mode="w", sep=field_delimiter)
+                res = locals()['custom_mapper'](os.path.join(
+                    Command.paths_per_file_name[file_name]["init_folder_name_path"], f))
+                res.to_csv(f"{Command.paths_per_file_name[file_name]['map_folder_name_path']}{os.sep}{f}",
+                           index=False, mode="w", sep=field_delimiter)
 
     @staticmethod
     def min_max_hash(hash_key_list, file_name, field_delimiter):

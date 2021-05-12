@@ -32,14 +32,6 @@ def write(content: dict):
 
 @app.post("/command/map")
 def map(content: dict):
-    # deserialized_content = json.loads(content)
-    print(35)
-    print(content)
-    print(type(content))
-    print(35)
-    # print(deserialized_content)
-    # print(type(deserialized_content))
-    print(35)
     response = {'mapped_folder_name': cmd.map(content)}
     return JSONResponse(response)
 
@@ -59,8 +51,9 @@ def finish_shuffle(content: dict):
 @app.post("/command/min_max_hash")
 def min_max_hash(content: dict):
     field_delimiter = content['field_delimiter']
+    file_name = content["source_file"]
 
-    cmd.min_max_hash(cmd.hash_keys(field_delimiter), cmd.map_folder_name_path, field_delimiter)
+    cmd.min_max_hash(cmd.hash_keys(field_delimiter, file_name), cmd.map_folder_name_path, field_delimiter)
 
     return JSONResponse("Min max hash request has been received by data node!")
 
