@@ -146,15 +146,15 @@ class Command:
 
     @staticmethod
     def hash_keys(field_delimiter, file_id):
-        # r=root, d=directories, f = files
-        files = [os.path.join(r, file) for r, d, f
-                 in os.walk(Command.paths_per_file_name[file_id]["map_folder_name_path"]) for file in f]
+        walk_path = os.path.abspath(os.path.join(".", Command.paths_per_file_name[file_id]["map_folder_name_path"]))
         hash_key_list = []
-        for f in files:
-            data_f = pd.read_csv(f, sep=field_delimiter)
 
-            for j in data_f.loc[:, "key_column"]:
-                hash_key_list.append(Command.hash_f(j))
+        # r=root, d=directories, f = files
+        for r, d, f in os.walk(walk_path):
+            for file in f:
+                data_f = pd.read_csv(os.path.join(r, file), sep=field_delimiter)
+                for j in data_f.loc[:, "key_column"]:
+                    hash_key_list.append(Command.hash_f(j))
 
         return hash_key_list
 
@@ -163,7 +163,6 @@ class Command:
         reducer = base64.b64decode(content['reducer'])
         field_delimiter = content['field_delimiter']
         file_id = content["file_id"]
-        # dest = content['destination_file']
         file_name = content["source_file"]
         file_path = os.path.join(Command.paths_per_file_name[file_id]["shuffle_folder_name_path"], 'shuffled.csv')
         first_file_paths = get_file_paths(file_name)
