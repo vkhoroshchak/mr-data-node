@@ -19,8 +19,10 @@ with open(os.path.join(os.path.dirname(__file__), "config", "config.json")) as c
 @app.post("/command/create_config_and_filesystem")
 async def create_config_and_filesystem(content: dict):
     # file_name = request.json["file_name"]
-    cmd.init_folder_variables(content.get("file_name"), content.get("file_id"))
-    cmd.create_folders(content.get("file_name"))
+    file_name = content.get("file_name", "")
+    file_id = content.get("file_id", "")
+    cmd.init_folder_variables(file_name, file_id)
+    cmd.create_folders(file_name, file_id)
     return JSONResponse("Config and filesystem created!")
 
 
@@ -51,9 +53,9 @@ def finish_shuffle(content: dict):
 @app.post("/command/min_max_hash")
 def min_max_hash(content: dict):
     field_delimiter = content['field_delimiter']
-    file_name = content["source_file"]
+    file_id = str(content["file_id"])
 
-    cmd.min_max_hash(cmd.hash_keys(field_delimiter, file_name), cmd.map_folder_name_path, field_delimiter)
+    cmd.min_max_hash(cmd.hash_keys(field_delimiter, file_id), file_id, field_delimiter)
 
     return JSONResponse("Min max hash request has been received by data node!")
 
@@ -73,8 +75,8 @@ def reduce(content: dict):
 
 
 @app.post('/command/move_file_to_init_folder')
-def move_file_to_init_folder():
-    cmd.move_file_to_init_folder()
+def move_file_to_init_folder(content: dict):
+    cmd.move_file_to_init_folder(content)
     return JSONResponse("Move file to init folder request has been received by data node!")
 
 

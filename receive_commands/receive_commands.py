@@ -50,22 +50,22 @@ class Command:
     def init_folder_variables(file_name, file_id):
         name, extension = os.path.splitext(file_name)
         folder_format = name + config['name_delimiter'] + '{}' + extension
-        Command.paths_per_file_name[file_name] = {
+        Command.paths_per_file_name[file_id] = {
             "data_folder_name_path": config['data_folder_name'],
             "file_name_path": os.path.join(config['data_folder_name'], file_name),
             "folder_name_path": os.path.join(config['data_folder_name'],
                                              folder_format.format(config['folder_name'])),
         }
 
-        Command.paths_per_file_name[file_name].update(
+        Command.paths_per_file_name[file_id].update(
             {
-                "init_folder_name_path": os.path.join(Command.paths_per_file_name[file_name]["folder_name_path"],
+                "init_folder_name_path": os.path.join(Command.paths_per_file_name[file_id]["folder_name_path"],
                                                       folder_format.format(config['init_folder_name'])),
-                "reduce_folder_name_path": os.path.join(Command.paths_per_file_name[file_name]["folder_name_path"],
+                "reduce_folder_name_path": os.path.join(Command.paths_per_file_name[file_id]["folder_name_path"],
                                                         folder_format.format(config['reduce_folder_name'])),
-                "shuffle_folder_name_path": os.path.join(Command.paths_per_file_name[file_name]["folder_name_path"],
+                "shuffle_folder_name_path": os.path.join(Command.paths_per_file_name[file_id]["folder_name_path"],
                                                          folder_format.format(config['shuffle_folder_name'])),
-                "map_folder_name_path": os.path.join(Command.paths_per_file_name[file_name]["folder_name_path"],
+                "map_folder_name_path": os.path.join(Command.paths_per_file_name[file_id]["folder_name_path"],
                                                      folder_format.format(config['map_folder_name'])),
             }
         )
@@ -87,14 +87,15 @@ class Command:
         #                                                                                config['map_folder_name']))
         updated_config = get_updated_config()
         file_paths_info = {
+            "file_id": file_id,
             "file_name": file_name,
-            "data_folder_name_path": Command.paths_per_file_name[file_name]["data_folder_name_path"],
-            "file_name_path": Command.paths_per_file_name[file_name]["file_name_path"],
-            "folder_name_path": Command.paths_per_file_name[file_name]["folder_name_path"],
-            "init_folder_name_path": Command.paths_per_file_name[file_name]["init_folder_name_path"],
-            "reduce_folder_name_path": Command.paths_per_file_name[file_name]["reduce_folder_name_path"],
-            "shuffle_folder_name_path": Command.paths_per_file_name[file_name]["shuffle_folder_name_path"],
-            "map_folder_name_path": Command.paths_per_file_name[file_name]["map_folder_name_path"],
+            "data_folder_name_path": Command.paths_per_file_name[file_id]["data_folder_name_path"],
+            "file_name_path": Command.paths_per_file_name[file_id]["file_name_path"],
+            "folder_name_path": Command.paths_per_file_name[file_id]["folder_name_path"],
+            "init_folder_name_path": Command.paths_per_file_name[file_id]["init_folder_name_path"],
+            "reduce_folder_name_path": Command.paths_per_file_name[file_id]["reduce_folder_name_path"],
+            "shuffle_folder_name_path": Command.paths_per_file_name[file_id]["shuffle_folder_name_path"],
+            "map_folder_name_path": Command.paths_per_file_name[file_id]["map_folder_name_path"],
         }
 
         if file_paths_info not in updated_config["files"]:
@@ -111,19 +112,19 @@ class Command:
         save_changes_to_updated_config(updated_config)
 
     @staticmethod
-    def create_folders(file_name):
-        if os.path.exists(Command.paths_per_file_name[file_name]["file_name_path"]):
+    def create_folders(file_name, file_id):
+        if os.path.exists(Command.paths_per_file_name[file_id]["file_name_path"]):
             Command.clear_data(
                 {
-                    "folder_name": os.path.basename(Command.paths_per_file_name[file_name]["file_name_path"]),
+                    "folder_name": os.path.basename(Command.paths_per_file_name[file_id]["file_name_path"]),
                     "remove_all_data": False
                 }
             )
-        Command.make_folder(Command.paths_per_file_name[file_name]["folder_name_path"])
-        Command.make_folder(Command.paths_per_file_name[file_name]["init_folder_name_path"])
-        Command.make_folder(Command.paths_per_file_name[file_name]["map_folder_name_path"])
-        Command.make_folder(Command.paths_per_file_name[file_name]["shuffle_folder_name_path"])
-        Command.make_folder(Command.paths_per_file_name[file_name]["reduce_folder_name_path"])
+        Command.make_folder(Command.paths_per_file_name[file_id]["folder_name_path"])
+        Command.make_folder(Command.paths_per_file_name[file_id]["init_folder_name_path"])
+        Command.make_folder(Command.paths_per_file_name[file_id]["map_folder_name_path"])
+        Command.make_folder(Command.paths_per_file_name[file_id]["shuffle_folder_name_path"])
+        Command.make_folder(Command.paths_per_file_name[file_id]["reduce_folder_name_path"])
 
     @staticmethod
     def make_folder(path):
@@ -133,8 +134,8 @@ class Command:
     @staticmethod
     def write(content):
         file_name = content["file_name"]
-        src_file_name = content["src_file_name"]
-        path = os.path.join(Command.paths_per_file_name[src_file_name]["init_folder_name_path"], file_name)
+        file_id = content["file_id"]
+        path = os.path.join(Command.paths_per_file_name[file_id]["init_folder_name_path"], file_name)
         with open(path, 'wb+') as f:
             f.write(str.encode(content["segment"]["headers"]))
             f.writelines([str.encode(x) for x in content['segment']["items"]])
@@ -144,10 +145,10 @@ class Command:
         return hash(input)
 
     @staticmethod
-    def hash_keys(field_delimiter, file_name):
+    def hash_keys(field_delimiter, file_id):
         # r=root, d=directories, f = files
         files = [os.path.join(r, file) for r, d, f
-                 in os.walk(Command.paths_per_file_name[file_name]["map_folder_name_path"]) for file in f]
+                 in os.walk(Command.paths_per_file_name[file_id]["map_folder_name_path"]) for file in f]
         hash_key_list = []
         for f in files:
             data_f = pd.read_csv(f, sep=field_delimiter)
@@ -161,9 +162,10 @@ class Command:
     def reduce(content):
         reducer = base64.b64decode(content['reducer'])
         field_delimiter = content['field_delimiter']
+        file_id = content["file_id"]
         # dest = content['destination_file']
         file_name = content["source_file"]
-        file_path = os.path.join(Command.paths_per_file_name[file_name]["shuffle_folder_name_path"], 'shuffled.csv')
+        file_path = os.path.join(Command.paths_per_file_name[file_id]["shuffle_folder_name_path"], 'shuffled.csv')
         first_file_paths = get_file_paths(file_name)
         # first_file_paths = get_file_paths(content["file_id"])
         if ',' in file_name:
@@ -199,34 +201,34 @@ class Command:
         # dest = content['destination_file']
         mapper = content['mapper']
         field_delimiter = content['field_delimiter']
-        file_name = content["source_file"]
+        # file_name = content["source_file"]
+        file_id = content["file_id"]
 
         decoded_mapper = base64.b64decode(mapper)
 
-        for f in os.listdir(Command.paths_per_file_name[file_name]["init_folder_name_path"]):
-            if os.path.isfile(os.path.join(Command.paths_per_file_name[file_name]["init_folder_name_path"], f)):
+        for f in os.listdir(Command.paths_per_file_name[file_id]["init_folder_name_path"]):
+            if os.path.isfile(os.path.join(Command.paths_per_file_name[file_id]["init_folder_name_path"], f)):
                 exec(decoded_mapper)
                 res = locals()['custom_mapper'](os.path.join(
-                    Command.paths_per_file_name[file_name]["init_folder_name_path"], f))
-                res.to_csv(f"{Command.paths_per_file_name[file_name]['map_folder_name_path']}{os.sep}{f}",
+                    Command.paths_per_file_name[file_id]["init_folder_name_path"], f))
+                res.to_csv(f"{Command.paths_per_file_name[file_id]['map_folder_name_path']}{os.sep}{f}",
                            index=False, mode="w", sep=field_delimiter)
 
     @staticmethod
-    def min_max_hash(hash_key_list, file_name, field_delimiter):
+    def min_max_hash(hash_key_list, file_id, field_delimiter):
         with open(os.path.join('config', 'data_node_info.json')) as f:
             arbiter_address = json.load(f)['arbiter_address']
-
-        res = [
-            min(hash_key_list),
-            max(hash_key_list)
-        ]
         url = f'http://{arbiter_address}/command/hash'
         diction = {
-            'list_keys': res,
-            'file_name': file_name,
-            'field_delimiter': field_delimiter
+            'min_hash_value': min(hash_key_list),
+            'max_hash_value': max(hash_key_list),
+            'file_id': file_id,
         }
-        response = requests.post(url, json=diction)
+        response = requests.post(
+            url,
+            json=diction,
+            headers={'Content-type': 'application/json', 'Accept': 'text/plain'}
+        )
         return response
 
     @staticmethod
@@ -247,10 +249,12 @@ class Command:
                 save_changes_to_updated_config(updated_config)
 
     @staticmethod
-    def move_file_to_init_folder():
-        if os.path.exists(Command.file_name_path):
-            shutil.move(Command.file_name_path, os.path.join(Command.init_folder_name_path,
-                                                             os.path.basename(Command.file_name_path)))
+    def move_file_to_init_folder(content):
+        file_id = content["file_id"]
+        if os.path.exists(Command.paths_per_file_name[file_id]["file_name_path"]):
+            shutil.move(Command.paths_per_file_name[file_id]["file_name_path"],
+                        os.path.join(Command.paths_per_file_name[file_id]["init_folder_name_path"],
+                                     os.path.basename(Command.paths_per_file_name[file_id]["file_name_path"])))
 
     @staticmethod
     def get_file_from_cluster(context):
@@ -266,5 +270,8 @@ class Command:
                     'file_name': file_name,
                     'dest_file_name': context['dest_file_name']
                 }
-                response = requests.post(url, json=diction)
+                response = requests.post(
+                    url,
+                    json=diction,
+                    headers={'Content-type': 'application/json', 'Accept': 'text/plain'})
             return response

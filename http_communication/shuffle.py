@@ -37,13 +37,14 @@ class ShuffleCommand:
 
 
 def shuffle(content):
-    full_file_path = os.path.join(Command.shuffle_folder_name_path, 'shuffled.csv')
+    file_id = content["file_id"]
+    full_file_path = os.path.join(Command.paths_per_file_name[file_id]["shuffle_folder_name_path"], 'shuffled.csv')
     field_delimiter = content['field_delimiter']
 
     files = []
 
     # r=root, d=directories, f = files
-    for r, d, f in os.walk(Command.map_folder_name_path):
+    for r, d, f in os.walk(Command.paths_per_file_name[file_id]["map_folder_name_path"]):
         for file in f:
             files.append(os.path.join(r, file))
 
