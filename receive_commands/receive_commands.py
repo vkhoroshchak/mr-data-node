@@ -3,8 +3,10 @@ import json
 import os
 import shutil
 
+import dask.dataframe as dd
 import pandas as pd
 import requests
+from pathlib import Path
 
 with open(os.path.join(os.path.dirname(__file__), '..', 'config', 'config.json')) as config_file:
     config = json.load(config_file)
@@ -27,12 +29,6 @@ def get_file_paths(file_name):
     for item in get_updated_config()['files']:
         if item['file_name'] == os.path.basename(file_name):
             return item
-
-
-# def get_file_paths(file_id):
-#     for item in get_updated_config()['files']:
-#         if item['file_id'] == file_id:
-#             return item
 
 
 class Command:
@@ -69,22 +65,7 @@ class Command:
                                                      folder_format.format(config['map_folder_name'])),
             }
         )
-        # Command.paths_per_file_name[file_name].data_folder_name_path = config['data_folder_name']
-        # Command.paths_per_file_name[file_name].file_name_path = os.path.join(Command.data_folder_name_path, file_name)
-        # Command.paths_per_file_name[file_name].folder_name_path = os.path.join(Command.data_folder_name_path,
-        #                                                                        folder_format.format(
-        #                                                                            config['folder_name']))
-        # Command.paths_per_file_name[file_name].init_folder_name_path = os.path.join(Command.folder_name_path,
-        #                                                                             folder_format.format(
-        #                                                                                 config['init_folder_name']))
-        # Command.paths_per_file_name[file_name].reduce_folder_name_path = os.path.join(Command.folder_name_path,
-        #                                                                               folder_format.format(
-        #                                                                                   config['reduce_folder_name']))
-        # Command.paths_per_file_name[file_name].shuffle_folder_name_path = os.path.join(
-        #     Command.folder_name_path, folder_format.format(config['shuffle_folder_name']))
-        # Command.paths_per_file_name[file_name].map_folder_name_path = os.path.join(Command.folder_name_path,
-        #                                                                            folder_format.format(
-        #                                                                                config['map_folder_name']))
+
         updated_config = get_updated_config()
         file_paths_info = {
             "file_id": file_id,
@@ -100,14 +81,6 @@ class Command:
 
         if file_paths_info not in updated_config["files"]:
             updated_config['files'].append(file_paths_info)
-
-        # new_file_paths_info = {
-        #     "file_id": file_id,
-        #     "file_name": file_name,
-        # }
-
-        # if new_file_paths_info not in updated_config["files"]:
-        #     updated_config["files"].append(new_file_paths_info)
 
         save_changes_to_updated_config(updated_config)
 
@@ -146,15 +119,13 @@ class Command:
 
     @staticmethod
     def hash_keys(field_delimiter, file_id):
-        walk_path = os.path.abspath(os.path.join(".", Command.paths_per_file_name[file_id]["map_folder_name_path"]))
         hash_key_list = []
 
-        # r=root, d=directories, f = files
-        for r, d, f in os.walk(walk_path):
-            for file in f:
-                data_f = pd.read_csv(os.path.join(r, file), sep=field_delimiter)
-                for j in data_f.loc[:, "key_column"]:
-                    hash_key_list.append(Command.hash_f(j))
+        for segment in Command.paths_per_file_name[file_id]["segment_list"]:
+            data_f = dd.read_parquet(os.path.join(Command.paths_per_file_name[file_id]["map_folder_name_path"],
+                                                  segment, "part.0.parquet"))
+            for j in data_f.loc[:, "key_column"]:
+                hash_key_list.append(Command.hash_f(j))
 
         return hash_key_list
 
@@ -164,24 +135,36 @@ class Command:
         field_delimiter = content['field_delimiter']
         file_id = content["file_id"]
         file_name = content["source_file"]
-        file_path = os.path.join(Command.paths_per_file_name[file_id]["shuffle_folder_name_path"], 'shuffled.csv')
+
+        file_path = Path(Command.paths_per_file_name[file_id]["shuffle_folder_name_path"], "shuffled.csv")
+
+        shuffled_files = [os.path.join(file_path, f) for f in os.listdir(file_path)
+                          if os.path.splitext(f)[-1] == ".parquet"]
         first_file_paths = get_file_paths(file_name)
-        # first_file_paths = get_file_paths(content["file_id"])
         if ',' in file_name:
             first_file_path, second_file_path = file_name.split(',')
 
             first_file_paths = get_file_paths(first_file_path)
-
             first_shuffle_file_path = os.path.join(first_file_paths['shuffle_folder_name_path'], 'shuffled.csv')
-            second_file_paths = get_file_paths(second_file_path)
 
+            first_shuffled_files = [os.path.join(first_shuffle_file_path, f)
+                                    for f in os.listdir(first_shuffle_file_path)
+                                    if os.path.splitext(f)[-1] == ".parquet"]
+
+            second_file_paths = get_file_paths(second_file_path)
             second_shuffle_file_path = os.path.join(second_file_paths['shuffle_folder_name_path'], 'shuffled.csv')
-            file_path = (first_shuffle_file_path, second_shuffle_file_path)
+
+            second_shuffled_files = [os.path.join(second_shuffle_file_path, f)
+                                     for f in os.listdir(second_shuffle_file_path)
+                                     if os.path.splitext(f)[-1] == ".parquet"]
+
+            shuffled_files = zip(first_shuffled_files, second_shuffled_files)
 
         exec(reducer)
 
         destination_file_path = os.path.join(first_file_paths["data_folder_name_path"], first_file_paths["file_name"])
-        locals()['custom_reducer'](file_path, destination_file_path)
+        for shuffled_file in shuffled_files:
+            locals()['custom_reducer'](shuffled_file, destination_file_path)
 
     @staticmethod
     def finish_shuffle(content):
@@ -189,29 +172,37 @@ class Command:
         field_delimiter = content['field_delimiter']
 
         data_frame = pd.read_json(content['content'])
+        data_frame = dd.from_pandas(data_frame, npartitions=2)
         if not os.path.isfile(content['file_path']):
-            data_frame.to_csv(content['file_path'], header=cols, encoding='utf-8', index=False, sep=field_delimiter)
+            data_frame.to_parquet(content['file_path'],
+                                  write_index=False,
+                                  engine="pyarrow",
+                                  )
         else:
-            data_frame.to_csv(content['file_path'], mode='a', header=False, index=False, encoding='utf-8',
-                              sep=field_delimiter)
+            data_frame.to_csv(content['file_path'],
+                              write_index=False,
+                              engine="pyarrow",
+                              )
 
     @staticmethod
     def map(content):
-        # dest = content['destination_file']
         mapper = content['mapper']
         field_delimiter = content['field_delimiter']
-        # file_name = content["source_file"]
         file_id = content["file_id"]
 
         decoded_mapper = base64.b64decode(mapper)
-
+        Command.paths_per_file_name[file_id]["segment_list"] = []
         for f in os.listdir(Command.paths_per_file_name[file_id]["init_folder_name_path"]):
             if os.path.isfile(os.path.join(Command.paths_per_file_name[file_id]["init_folder_name_path"], f)):
                 exec(decoded_mapper)
                 res = locals()['custom_mapper'](os.path.join(
                     Command.paths_per_file_name[file_id]["init_folder_name_path"], f))
-                res.to_csv(f"{Command.paths_per_file_name[file_id]['map_folder_name_path']}{os.sep}{f}",
-                           index=False, mode="w", sep=field_delimiter)
+                # res.to_csv(f"{Command.paths_per_file_name[file_id]['map_folder_name_path']}{os.sep}{f}",
+                #            index=False, mode="w", sep=field_delimiter, single_file=True)
+                res.to_parquet(f"{Command.paths_per_file_name[file_id]['map_folder_name_path']}{os.sep}{f}",
+                               write_index=False,
+                               engine="pyarrow")
+                Command.paths_per_file_name[file_id]["segment_list"].append(f)
 
     @staticmethod
     def min_max_hash(hash_key_list, file_id, field_delimiter):
