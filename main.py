@@ -1,9 +1,7 @@
 import json
 import os
 
-from fastapi import (
-    FastAPI,
-)
+from fastapi import FastAPI
 from fastapi.responses import JSONResponse
 
 from http_communication import shuffle as sf
@@ -26,31 +24,31 @@ async def create_config_and_filesystem(content: dict):
 
 
 @app.post("/command/write")
-def write(content: dict):
+async def write(content: dict):
     cmd.write(content)
     return JSONResponse("File segment has been written to data node!")
 
 
 @app.post("/command/map")
-def map(content: dict):
+async def map(content: dict):
     response = {'mapped_folder_name': cmd.map(content)}
     return JSONResponse(response)
 
 
 @app.post("/command/shuffle")
-def shuffle(content: dict):
+async def shuffle(content: dict):
     sf.shuffle(content)
     return JSONResponse("Shuffle request has been received by data node!")
 
 
 @app.post("/command/finish_shuffle")
-def finish_shuffle(content: dict):
+async def finish_shuffle(content: dict):
     cmd.finish_shuffle(content)
     return JSONResponse("Finish shuffle request has been received by data node!")
 
 
 @app.post("/command/min_max_hash")
-def min_max_hash(content: dict):
+async def min_max_hash(content: dict):
     field_delimiter = content['field_delimiter']
     file_id = str(content["file_id"])
 
@@ -60,26 +58,26 @@ def min_max_hash(content: dict):
 
 
 @app.post("/command/clear_data")
-def clear_data(content: dict):
+async def clear_data(content: dict):
     cmd.clear_data(content)
 
     return JSONResponse("Clear data request has been received by data node!")
 
 
 @app.post("/command/reduce")
-def reduce(content: dict):
+async def reduce(content: dict):
     cmd.reduce(content)
 
     return JSONResponse("Reduce request has been received by data node!")
 
 
 @app.post('/command/move_file_to_init_folder')
-def move_file_to_init_folder(content: dict):
+async def move_file_to_init_folder(content: dict):
     cmd.move_file_to_init_folder(content)
     return JSONResponse("Move file to init folder request has been received by data node!")
 
 
 @app.post('/command/get_file_from_cluster')
-def get_file_from_cluster(content: dict):
+async def get_file_from_cluster(content: dict):
     cmd.get_file_from_cluster(content)
     return JSONResponse("Get file from cluster request has been received by data node!")
