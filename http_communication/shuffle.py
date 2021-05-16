@@ -33,8 +33,11 @@ class ShuffleCommand:
             'field_delimiter': self._data['field_delimiter']
         }
         url = f'http://{self._data["data_node_ip"]}/command/finish_shuffle'
-        response = requests.post(url, json=data, timeout=0.1)
-        return response
+        try:
+            response = requests.post(url, json=data, timeout=1)
+            return response
+        except requests.exceptions.ReadTimeout:
+            pass
 
 
 def shuffle(content):
@@ -60,16 +63,10 @@ def shuffle(content):
                     index_list.append(index)
 
             if i['data_node_ip'] == self_node_ip:
-                if not os.path.isdir(full_file_path):
-                    dd.from_pandas(data_f.iloc[index_list], npartitions=2).to_parquet(full_file_path,
-                                                                                      write_index=False,
-                                                                                      engine="pyarrow"
-                                                                                      )
-                else:
-                    dd.from_pandas(data_f.iloc[index_list], npartitions=2).to_parquet(full_file_path,
-                                                                                      write_index=False,
-                                                                                      engine="pyarrow"
-                                                                                      )
+                dd.from_pandas(data_f.iloc[index_list], npartitions=2).to_parquet(full_file_path,
+                                                                                  write_index=False,
+                                                                                  engine="pyarrow"
+                                                                                  )
             else:
                 data = {'content': data_f.iloc[index_list].to_json(),
                         'data_node_ip': i['data_node_ip']}
