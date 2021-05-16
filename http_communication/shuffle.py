@@ -33,8 +33,11 @@ class ShuffleCommand:
             'field_delimiter': self._data['field_delimiter']
         }
         url = f'http://{self._data["data_node_ip"]}/command/finish_shuffle'
-        response = requests.post(url, json=data, timeout=0.1)
-        return response
+        try:
+            response = requests.post(url, json=data, timeout=1)
+            return response
+        except requests.exceptions.ReadTimeout:
+            pass
 
 
 def shuffle(content):

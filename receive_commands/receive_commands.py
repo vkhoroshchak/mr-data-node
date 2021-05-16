@@ -120,11 +120,11 @@ class Command:
     @staticmethod
     def hash_keys(field_delimiter, file_id):
         hash_key_list = []
-
         for segment in Command.paths_per_file_name[file_id]["segment_list"]:
             data_f = dd.read_parquet(os.path.join(Command.paths_per_file_name[file_id]["map_folder_name_path"],
                                                   segment, "part.0.parquet"))
-            for j in data_f.loc[:, "key_column"]:
+            # for j in data_f.loc[:, "key_column"]:
+            for j in data_f.loc["key_column"]:
                 hash_key_list.append(Command.hash_f(j))
 
         return hash_key_list
