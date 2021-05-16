@@ -1,12 +1,13 @@
 import base64
+import bz2
 import json
 import os
 import shutil
+from pathlib import Path
 
 import dask.dataframe as dd
 import pandas as pd
 import requests
-from pathlib import Path
 
 with open(os.path.join(os.path.dirname(__file__), '..', 'config', 'config.json')) as config_file:
     config = json.load(config_file)
@@ -111,7 +112,10 @@ class Command:
         path = os.path.join(Command.paths_per_file_name[file_id]["init_folder_name_path"], file_name)
         with open(path, 'wb+') as f:
             f.write(str.encode(content["segment"]["headers"]))
-            f.writelines([str.encode(x) for x in content['segment']["items"]])
+            to_decompress = base64.b64decode(content['segment']["items"])
+            items = bz2.decompress(to_decompress).decode('utf-8')
+            items = json.loads(items)
+            f.writelines([str.encode(x) for x in items])
 
     @staticmethod
     def hash_f(input):
