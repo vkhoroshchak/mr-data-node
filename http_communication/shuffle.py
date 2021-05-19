@@ -34,9 +34,11 @@ class ShuffleCommand:
         }
         url = f'http://{self._data["data_node_ip"]}/command/finish_shuffle'
         try:
-            response = requests.post(url, json=data, timeout=1)
+            response = requests.post(url, json=data, timeout=10)
             return response
         except requests.exceptions.ReadTimeout:
+            pass
+        except requests.exceptions.ConnectionError:
             pass
 
 
