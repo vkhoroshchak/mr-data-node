@@ -172,8 +172,8 @@ class Command:
 
     @staticmethod
     def finish_shuffle(content):
-        cols = list(pd.read_json(content['content']).columns)
-        field_delimiter = content['field_delimiter']
+        # cols = list(pd.read_json(content['content']).columns)
+        # field_delimiter = content['field_delimiter']
 
         data_frame = pd.read_json(content['content'])
         data_frame = dd.from_pandas(data_frame, npartitions=2)

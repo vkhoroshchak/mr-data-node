@@ -51,7 +51,7 @@ def shuffle(content):
         data_f = pd.read_parquet(os.path.join(Command.paths_per_file_name[file_id]["map_folder_name_path"],
                                               f, "part.0.parquet"))
 
-        headers = list(data_f.columns)
+        # headers = list(data_f.columns)
 
         for i in content['nodes_keys']:
             index_list = []
@@ -65,7 +65,7 @@ def shuffle(content):
                     index_list.append(index)
 
             if i['data_node_ip'] == self_node_ip:
-                dd.from_pandas(data_f.iloc[index_list], npartitions=2).to_parquet(full_file_path,
+                dd.from_pandas(data_f.iloc[index_list], npartitions=1).to_parquet(full_file_path,
                                                                                   write_index=False,
                                                                                   engine="pyarrow"
                                                                                   )
