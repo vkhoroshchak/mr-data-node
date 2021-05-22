@@ -1,5 +1,4 @@
 import base64
-import bz2
 import json
 import os
 import shutil
@@ -112,9 +111,7 @@ class Command:
         path = os.path.join(Command.paths_per_file_name[file_id]["init_folder_name_path"], file_name)
         with open(path, 'wb+') as f:
             f.write(str.encode(content["segment"]["headers"]))
-            to_decompress = base64.b64decode(content['segment']["items"])
-            items = bz2.decompress(to_decompress).decode('utf-8')
-            items = json.loads(items)
+            items = json.loads(content['segment']["items"])
             f.writelines([str.encode(x) for x in items])
 
     @staticmethod
