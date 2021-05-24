@@ -7,6 +7,7 @@ from pathlib import Path
 import dask.dataframe as dd
 import pandas as pd
 import requests
+from fastapi.responses import StreamingResponse, FileResponse
 
 with open(os.path.join(os.path.dirname(__file__), '..', 'config', 'config.json')) as config_file:
     config = json.load(config_file)
@@ -232,7 +233,8 @@ class Command:
             if item["file_name"] == file_name:
                 if os.path.exists(item['file_name_path']):
                     if remove_all:
-                        os.remove(item['file_name_path'])
+                        # os.remove(item['file_name_path'])
+                        shutil.rmtree(item['file_name_path'])
                 else:
                     updated_config['files'].remove(item)
                 if os.path.exists(item['folder_name_path']):
@@ -266,3 +268,20 @@ class Command:
                     json=diction,
                     headers={'Content-type': 'application/json', 'Accept': 'text/plain'})
             return response
+
+    @staticmethod
+    async def get_file(content: dict):
+        file_name = content['file_name']
+        file_id = content['file_id']
+        file_name_path = os.path.join(Command.paths_per_file_name[file_id]["data_folder_name_path"], file_name)
+        if os.path.exists(file_name_path):
+            segments = [f for f in os.listdir(file_name_path) if os.path.splitext(f)[-1] == ".part"]
+            print(278, file_name, file_name_path)
+            for f in segments:
+                segment_path = str(os.path.abspath(os.path.join(file_name_path, f)))
+                print(282, segment_path)
+                return segment_path
+                # return FileResponse(segment_path)
+                # part_file = open(os.path.join(file_name_path, f), mode="rb")
+                # return StreamingResponse(part_file)
+                # return os.path.abspath(os.path.join(file_name_path, f))

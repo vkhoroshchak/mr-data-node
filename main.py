@@ -81,3 +81,8 @@ async def move_file_to_init_folder(content: dict):
 async def get_file_from_cluster(content: dict):
     cmd.get_file_from_cluster(content)
     return JSONResponse("Get file from cluster request has been received by data node!")
+
+
+@app.get('/command/get_file')
+async def get_file(content: dict):
+    return await cmd.get_file(content)
