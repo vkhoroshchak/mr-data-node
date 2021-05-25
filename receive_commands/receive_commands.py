@@ -2,12 +2,12 @@ import base64
 import json
 import os
 import shutil
+import tempfile
 from pathlib import Path
 
 import dask.dataframe as dd
 import pandas as pd
 import requests
-from fastapi.responses import StreamingResponse, FileResponse
 
 with open(os.path.join(os.path.dirname(__file__), '..', 'config', 'config.json')) as config_file:
     config = json.load(config_file)
@@ -270,18 +270,19 @@ class Command:
             return response
 
     @staticmethod
-    async def get_file(content: dict):
+    def get_file(content: dict):
         file_name = content['file_name']
         file_id = content['file_id']
         file_name_path = os.path.join(Command.paths_per_file_name[file_id]["data_folder_name_path"], file_name)
+
         if os.path.exists(file_name_path):
             segments = [f for f in os.listdir(file_name_path) if os.path.splitext(f)[-1] == ".part"]
-            print(278, file_name, file_name_path)
             for f in segments:
                 segment_path = str(os.path.abspath(os.path.join(file_name_path, f)))
-                print(282, segment_path)
-                return segment_path
-                # return FileResponse(segment_path)
-                # part_file = open(os.path.join(file_name_path, f), mode="rb")
-                # return StreamingResponse(part_file)
-                # return os.path.abspath(os.path.join(file_name_path, f))
+
+                with tempfile.TemporaryDirectory() as tmp:
+                    df = dd.read_csv(segment_path)
+                    csv_path = os.path.join(tmp, f'{file_name}')
+                    df.to_csv(csv_path, single_file=True, index=False)
+                    with open(csv_path, "rb") as csv_file:
+                        yield csv_file.read()

@@ -2,7 +2,7 @@ import json
 import os
 
 from fastapi import FastAPI
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, StreamingResponse
 
 from http_communication import shuffle as sf
 from receive_commands.receive_commands import Command as cmd
@@ -83,6 +83,6 @@ async def get_file_from_cluster(content: dict):
     return JSONResponse("Get file from cluster request has been received by data node!")
 
 
-@app.get('/command/get_file')
+@app.post('/command/get_file')
 async def get_file(content: dict):
-    return await cmd.get_file(content)
+    return StreamingResponse(cmd.get_file(content))
