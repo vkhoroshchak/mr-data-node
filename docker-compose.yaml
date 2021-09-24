@@ -1,0 +1,32 @@
+version: "3.3"
+services:
+  data-node-1:
+    build: .
+    ports:
+      - "5001:5001"
+    volumes:
+      - .:/app
+    environment:
+      SELF_ADDRESS: "0.0.0.0:5001"
+    command: [ "uvicorn", "main:app","--host=0.0.0.0", "--port=5001", "--reload" ]
+
+  data-node-2:
+    build: .
+    ports:
+      - "5002:5002"
+    volumes:
+      - .:/app
+    environment:
+      SELF_ADDRESS: "0.0.0.0:5002"
+    command: [ "uvicorn", "main:app","--host=0.0.0.0", "--port=5002", "--reload" ]
+
+
+  data-node-3:
+    build: .
+    ports:
+      - "5003:5003"
+    volumes:
+      - .:/app
+    environment:
+      SELF_ADDRESS: "0.0.0.0:5003"
+    command: [ "uvicorn", "main:app","--host=0.0.0.0", "--port=5003", "--reload" ]

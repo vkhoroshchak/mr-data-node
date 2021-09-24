@@ -14,7 +14,7 @@ with open(os.path.join("config", "config.json")) as config_file:
     config = json.load(config_file)
 
 with open(os.path.join('config', 'data_node_info.json')) as arbiter_node_json_data:
-    self_node_ip = json.load(arbiter_node_json_data)['self_address']
+    self_node_ip = os.environ['SELF_ADDRESS']
 
 
 class ShuffleCommand:
