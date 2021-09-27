@@ -1,18 +1,21 @@
 import base64
+import dask.dataframe as dd
 import json
 import os
+import pandas as pd
+import requests
 import shutil
 import tempfile
 from pathlib import Path
 
-import dask.dataframe as dd
-import pandas as pd
-import requests
+from config.logger import data_node_logger
 
 with open(os.path.join(os.path.dirname(__file__), '..', 'config', 'config.json')) as config_file:
     config = json.load(config_file)
 
 updated_config_path = os.path.join(os.path.dirname(__file__), '..', 'config', 'updated_config.json')
+
+logger = data_node_logger.get_logger(__name__)
 
 
 def get_updated_config():
@@ -33,6 +36,7 @@ def get_file_paths(file_name):
 
 
 class Command:
+    logger.info("Created Command class")
     paths_per_file_name = {}
     file_name_path = None
     folder_name_path = None
@@ -45,6 +49,7 @@ class Command:
     # TODO: refactor
     @staticmethod
     def init_folder_variables(file_name, file_id):
+        logger.info(f"went into init_folder_variables with {file_name} and {file_id}")
         name, extension = os.path.splitext(file_name)
         folder_format = name + config['name_delimiter'] + '{}' + extension
         Command.paths_per_file_name[file_id] = {
@@ -66,6 +71,7 @@ class Command:
                                                      folder_format.format(config['map_folder_name'])),
             }
         )
+        logger.info(f"Command has such IDs: {Command.paths_per_file_name}")
 
         updated_config = get_updated_config()
         file_paths_info = {
@@ -122,6 +128,7 @@ class Command:
     @staticmethod
     def hash_keys(field_delimiter, file_id):
         hash_key_list = []
+        print(Command.paths_per_file_name)
         for segment in Command.paths_per_file_name[file_id]["segment_list"]:
             data_f = dd.read_parquet(os.path.join(Command.paths_per_file_name[file_id]["map_folder_name_path"],
                                                   segment, "part.0.parquet"))
@@ -274,6 +281,7 @@ class Command:
         file_name = content['file_name']
         file_id = content['file_id']
         file_name_path = os.path.join(Command.paths_per_file_name[file_id]["data_folder_name_path"], file_name)
+        logger.info(f"{file_name_path=}")
 
         if os.path.exists(file_name_path):
             segments = [f for f in os.listdir(file_name_path) if os.path.splitext(f)[-1] == ".part"]
@@ -285,4 +293,5 @@ class Command:
                     csv_path = os.path.join(tmp, f'{file_name}')
                     df.to_csv(csv_path, single_file=True, index=False)
                     with open(csv_path, "rb") as csv_file:
-                        yield csv_file.read()
+                        # yield csv_file.read()
+                        return csv_file.read()

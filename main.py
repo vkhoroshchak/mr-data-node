@@ -83,6 +83,10 @@ async def get_file_from_cluster(content: dict):
     return JSONResponse("Get file from cluster request has been received by data node!")
 
 
-@app.post('/command/get_file')
+@app.get('/command/get_file')
 async def get_file(content: dict):
-    return StreamingResponse(cmd.get_file(content))
+    # "file": StreamingResponse(cmd.get_file(content))
+    response = {
+        "file": cmd.get_file(content)
+    }
+    return JSONResponse(response)
