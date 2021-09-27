@@ -4,29 +4,33 @@ services:
     build: .
     ports:
       - "5001:5001"
-    volumes:
-      - .:/app
+    networks:
+      - mr_network
     environment:
-      SELF_ADDRESS: "0.0.0.0:5001"
-    command: [ "uvicorn", "main:app","--host=0.0.0.0", "--port=5001", "--reload" ]
+      SELF_ADDRESS: "mr-data-node_data-node-1_1:5001"
+    command: [ "uvicorn", "main:app","--host=0.0.0.0", "--port=5001"]
 
   data-node-2:
     build: .
     ports:
       - "5002:5002"
-    volumes:
-      - .:/app
+    networks:
+      - mr_network
     environment:
-      SELF_ADDRESS: "0.0.0.0:5002"
-    command: [ "uvicorn", "main:app","--host=0.0.0.0", "--port=5002", "--reload" ]
+      SELF_ADDRESS: "mr-data-node_data-node-2_1:5002"
+    command: [ "uvicorn", "main:app","--host=0.0.0.0", "--port=5002"]
 
 
   data-node-3:
     build: .
     ports:
       - "5003:5003"
-    volumes:
-      - .:/app
+    networks:
+      - mr_network
     environment:
-      SELF_ADDRESS: "0.0.0.0:5003"
-    command: [ "uvicorn", "main:app","--host=0.0.0.0", "--port=5003", "--reload" ]
+      SELF_ADDRESS: "mr-data-node_data-node-3_1:5003"
+    command: [ "uvicorn", "main:app","--host=0.0.0.0", "--port=5003"]
+
+networks:
+  mr_network:
+    external: true
