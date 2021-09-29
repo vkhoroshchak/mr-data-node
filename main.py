@@ -85,8 +85,4 @@ async def get_file_from_cluster(content: dict):
 
 @app.get('/command/get_file')
 async def get_file(content: dict):
-    # "file": StreamingResponse(cmd.get_file(content))
-    response = {
-        "file": cmd.get_file(content)
-    }
-    return JSONResponse(response)
+    return StreamingResponse(cmd.get_file(content))

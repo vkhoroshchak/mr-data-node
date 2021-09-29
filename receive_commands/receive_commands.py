@@ -53,10 +53,10 @@ class Command:
         name, extension = os.path.splitext(file_name)
         folder_format = name + config['name_delimiter'] + '{}' + extension
         Command.paths_per_file_name[file_id] = {
-            "data_folder_name_path": config['data_folder_name'],
-            "file_name_path": os.path.join(config['data_folder_name'], file_name),
+            "data_folder_name_path": config['data_folder_name'] + file_id,
+            "file_name_path": os.path.join(config['data_folder_name'], file_name + file_id),
             "folder_name_path": os.path.join(config['data_folder_name'],
-                                             folder_format.format(config['folder_name'])),
+                                             folder_format.format(config['folder_name']) + file_id),
         }
 
         Command.paths_per_file_name[file_id].update(
@@ -282,16 +282,45 @@ class Command:
         file_id = content['file_id']
         file_name_path = os.path.join(Command.paths_per_file_name[file_id]["data_folder_name_path"], file_name)
         logger.info(f"{file_name_path=}")
+        logger.info(f"Searching for file_name_path: {os.path.exists(file_name_path)}")
 
         if os.path.exists(file_name_path):
+            # get file after MR has been done
+            logger.info(f"os.listdir(file_name_path) = {os.listdir(file_name_path)}")
             segments = [f for f in os.listdir(file_name_path) if os.path.splitext(f)[-1] == ".part"]
+            logger.info(f"{segments=}")
             for f in segments:
+                logger.info(f"{f=}")
                 segment_path = str(os.path.abspath(os.path.join(file_name_path, f)))
-
+                logger.info(f"{segment_path=}")
                 with tempfile.TemporaryDirectory() as tmp:
                     df = dd.read_csv(segment_path)
                     csv_path = os.path.join(tmp, f'{file_name}')
+                    logger.info(f"{csv_path=}")
                     df.to_csv(csv_path, single_file=True, index=False)
                     with open(csv_path, "rb") as csv_file:
                         # yield csv_file.read()
-                        return csv_file.read()
+                        yield from csv_file
+                        # return csv_file.read()
+        else:
+            # get file that has only been pushed on cluster
+            init_folder_name_path = Command.paths_per_file_name[file_id]["init_folder_name_path"]
+            logger.info(f"{init_folder_name_path=}")
+            logger.info(f"Searching for init_folder_name_path: {os.path.exists(init_folder_name_path)}")
+            if os.path.exists(init_folder_name_path):
+                logger.info(f"os.listdir(init_folder_name_path) = {os.listdir(init_folder_name_path)}")
+                for f in os.listdir(init_folder_name_path):
+                    logger.info(f"{f=}")
+                    segment_path = str(os.path.abspath(os.path.join(init_folder_name_path, f)))
+                    logger.info(f"{segment_path=}")
+                    with tempfile.TemporaryDirectory() as tmp:
+                        df = dd.read_csv(segment_path)
+                        csv_path = os.path.join(tmp, f'{file_name}')
+                        logger.info(f"{csv_path=}")
+                        df.to_csv(csv_path, single_file=True, index=False)
+                        with open(csv_path, "rb") as csv_file:
+                            # yield csv_file.read()
+                            yield from csv_file
+                            # return csv_file.read()
+            else:
+                logger.info("This method will return NULL!")
