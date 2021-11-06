@@ -52,7 +52,7 @@ class Command:
         logger.info(f"went into init_folder_variables with {file_name} and {file_id}")
         name, extension = os.path.splitext(file_name)
         folder_format = name + config['name_delimiter'] + '{}' + file_id + extension
-        Command.paths_per_file_name = {}
+        # Command.paths_per_file_name = {}
         Command.paths_per_file_name[file_id] = {
             "data_folder_name_path": config['data_folder_name'] + config['name_delimiter'] + file_id,
             "file_name_path": os.path.join(config['data_folder_name'], name + config['name_delimiter'] + file_id
