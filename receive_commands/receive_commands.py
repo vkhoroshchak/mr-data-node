@@ -51,12 +51,14 @@ class Command:
     def init_folder_variables(file_name, file_id):
         logger.info(f"went into init_folder_variables with {file_name} and {file_id}")
         name, extension = os.path.splitext(file_name)
-        folder_format = name + config['name_delimiter'] + '{}' + extension
+        folder_format = name + config['name_delimiter'] + '{}' + file_id + extension
+        Command.paths_per_file_name = {}
         Command.paths_per_file_name[file_id] = {
-            "data_folder_name_path": config['data_folder_name'] + file_id,
-            "file_name_path": os.path.join(config['data_folder_name'], file_name + file_id),
+            "data_folder_name_path": config['data_folder_name'] + config['name_delimiter'] + file_id,
+            "file_name_path": os.path.join(config['data_folder_name'], name + config['name_delimiter'] + file_id
+                                           + extension),
             "folder_name_path": os.path.join(config['data_folder_name'],
-                                             folder_format.format(config['folder_name']) + file_id),
+                                             folder_format.format(config['folder_name'])),
         }
 
         Command.paths_per_file_name[file_id].update(
@@ -97,7 +99,8 @@ class Command:
             Command.clear_data(
                 {
                     "folder_name": os.path.basename(Command.paths_per_file_name[file_id]["file_name_path"]),
-                    "remove_all_data": False
+                    "remove_all_data": False,
+                    "file_id": file_id
                 }
             )
         Command.make_folder(Command.paths_per_file_name[file_id]["folder_name_path"])
@@ -234,6 +237,8 @@ class Command:
     def clear_data(content):
         file_name = content['folder_name']
         remove_all = content['remove_all_data']
+        file_id = content["file_id"]
+        del Command.paths_per_file_name[file_id]
         updated_config = get_updated_config()
 
         for item in updated_config['files']:
