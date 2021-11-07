@@ -1,7 +1,7 @@
 import json
 import os
 
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from fastapi.responses import JSONResponse, StreamingResponse
 
 from http_communication import shuffle as sf
@@ -85,4 +85,7 @@ async def get_file_from_cluster(content: dict):
 
 @app.get('/command/get_file')
 async def get_file(content: dict):
-    return StreamingResponse(cmd.get_file(content))
+    streaming_file = cmd.get_file(content)
+    if not streaming_file:
+        raise HTTPException(status_code=404, detail="File not found!")
+    return StreamingResponse(streaming_file)
