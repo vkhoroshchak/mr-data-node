@@ -262,6 +262,10 @@ class Command:
                                      os.path.basename(Command.paths_per_file_name[file_id]["file_name_path"])))
 
     @staticmethod
+    def check_if_file_is_on_cluster(content):
+        return {'is_file_on_data_node': content['file_id'] in Command.paths_per_file_name}
+
+    @staticmethod
     def get_file_from_cluster(context):
         file_name = context['file_name']
         file_name_path = os.path.join(Command.data_folder_name_path, file_name)

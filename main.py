@@ -51,6 +51,7 @@ async def finish_shuffle(content: dict):
 async def min_max_hash(content: dict):
     field_delimiter = content['field_delimiter']
     file_id = str(content["file_id"])
+    # data_nodes = content["data_nodes"]
 
     cmd.min_max_hash(cmd.hash_keys(field_delimiter, file_id), file_id, field_delimiter)
 
@@ -75,6 +76,11 @@ async def reduce(content: dict):
 async def move_file_to_init_folder(content: dict):
     cmd.move_file_to_init_folder(content)
     return JSONResponse("Move file to init folder request has been received by data node!")
+
+
+@app.get('/command/check_if_file_is_on_cluster')
+async def check_if_file_is_on_cluster(content: dict):
+    return cmd.check_if_file_is_on_cluster(content)
 
 
 @app.post('/command/get_file_from_cluster')
