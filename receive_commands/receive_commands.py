@@ -36,7 +36,6 @@ def get_file_paths(file_name):
 
 
 class Command:
-    logger.info("Created Command class")
     paths_per_file_name = {}
     file_name_path = None
     folder_name_path = None
@@ -49,7 +48,6 @@ class Command:
     # TODO: refactor
     @staticmethod
     def init_folder_variables(file_name, file_id):
-        logger.info(f"went into init_folder_variables with {file_name} and {file_id}")
         name, extension = os.path.splitext(file_name)
         folder_format = name + config['name_delimiter'] + '{}' + file_id + extension
         # Command.paths_per_file_name = {}
@@ -73,7 +71,6 @@ class Command:
                                                      folder_format.format(config['map_folder_name'])),
             }
         )
-        logger.info(f"Command has such IDs: {Command.paths_per_file_name}")
 
         updated_config = get_updated_config()
         file_paths_info = {
@@ -297,15 +294,11 @@ class Command:
             # get file after MR has been done
             logger.info(f"os.listdir(file_name_path) = {os.listdir(file_name_path)}")
             segments = [f for f in os.listdir(file_name_path) if os.path.splitext(f)[-1] == ".part"]
-            logger.info(f"{segments=}")
             for f in segments:
-                logger.info(f"{f=}")
                 segment_path = str(os.path.abspath(os.path.join(file_name_path, f)))
-                logger.info(f"{segment_path=}")
                 with tempfile.TemporaryDirectory() as tmp:
                     df = dd.read_csv(segment_path)
                     csv_path = os.path.join(tmp, f'{file_name}')
-                    logger.info(f"{csv_path=}")
                     df.to_csv(csv_path, single_file=True, index=False)
                     with open(csv_path, "rb") as csv_file:
                         # yield csv_file.read()
@@ -319,13 +312,10 @@ class Command:
             if os.path.exists(init_folder_name_path):
                 logger.info(f"os.listdir(init_folder_name_path) = {os.listdir(init_folder_name_path)}")
                 for f in os.listdir(init_folder_name_path):
-                    logger.info(f"{f=}")
                     segment_path = str(os.path.abspath(os.path.join(init_folder_name_path, f)))
-                    logger.info(f"{segment_path=}")
                     with tempfile.TemporaryDirectory() as tmp:
                         df = dd.read_csv(segment_path)
                         csv_path = os.path.join(tmp, f'{file_name}')
-                        logger.info(f"{csv_path=}")
                         df.to_csv(csv_path, single_file=True, index=False)
                         with open(csv_path, "rb") as csv_file:
                             # yield csv_file.read()
