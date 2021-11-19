@@ -80,5 +80,5 @@ def shuffle(content):
                     sc = ShuffleCommand(data, full_file_path, field_delimiter)
                     sc.send()
     except Exception as e:
-        logger.info("Caught exception!" + e)
+        logger.info("Caught exception!" + str(e))
         traceback.print_exc()

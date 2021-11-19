@@ -92,7 +92,7 @@ class Command:
 
             save_changes_to_updated_config(updated_config)
         except Exception as e:
-            logger.info("Caught exception!" + e)
+            logger.info("Caught exception!" + str(e))
             traceback.print_exc()
 
     @staticmethod
@@ -112,7 +112,7 @@ class Command:
             Command.make_folder(Command.paths_per_file_name[file_id]["shuffle_folder_name_path"])
             Command.make_folder(Command.paths_per_file_name[file_id]["reduce_folder_name_path"])
         except Exception as e:
-            logger.info("Caught exception!" + e)
+            logger.info("Caught exception!" + str(e))
             traceback.print_exc()
 
     @staticmethod
@@ -131,7 +131,7 @@ class Command:
                 items = json.loads(content['segment']["items"])
                 f.writelines([str.encode(x) for x in items])
         except Exception as e:
-            logger.info("Caught exception!" + e)
+            logger.info("Caught exception!" + str(e))
             traceback.print_exc()
 
     @staticmethod
@@ -152,7 +152,7 @@ class Command:
 
             return hash_key_list
         except Exception as e:
-            logger.info("Caught exception!" + e)
+            logger.info("Caught exception!" + str(e))
             traceback.print_exc()
 
     @staticmethod
@@ -193,7 +193,7 @@ class Command:
             for shuffled_file in shuffled_files:
                 locals()['custom_reducer'](shuffled_file, destination_file_path)
         except Exception as e:
-            logger.info("Caught exception!" + e)
+            logger.info("Caught exception!" + str(e))
             traceback.print_exc()
 
     @staticmethod
@@ -215,7 +215,7 @@ class Command:
                                   engine="pyarrow",
                                   )
         except Exception as e:
-            logger.info("Caught exception!" + e)
+            logger.info("Caught exception!" + str(e))
             traceback.print_exc()
 
     @staticmethod
@@ -239,7 +239,7 @@ class Command:
                                    engine="pyarrow")
                     Command.paths_per_file_name[file_id]["segment_list"].append(f)
         except Exception as e:
-            logger.info("Caught exception!" + e)
+            logger.info("Caught exception!" + str(e))
             traceback.print_exc()
 
     @staticmethod
@@ -260,7 +260,7 @@ class Command:
             )
             return response
         except Exception as e:
-            logger.info("Caught exception!" + e)
+            logger.info("Caught exception!" + str(e))
             traceback.print_exc()
 
     @staticmethod
@@ -284,7 +284,7 @@ class Command:
                         shutil.rmtree(item['folder_name_path'])
                     save_changes_to_updated_config(updated_config)
         except Exception as e:
-            logger.info("Caught exception!" + e)
+            logger.info("Caught exception!" + str(e))
             traceback.print_exc()
 
     @staticmethod
@@ -296,7 +296,7 @@ class Command:
                             os.path.join(Command.paths_per_file_name[file_id]["init_folder_name_path"],
                                          os.path.basename(Command.paths_per_file_name[file_id]["file_name_path"])))
         except Exception as e:
-            logger.info("Caught exception!" + e)
+            logger.info("Caught exception!" + str(e))
             traceback.print_exc()
 
     @staticmethod
@@ -324,7 +324,7 @@ class Command:
                         headers={'Content-type': 'application/json', 'Accept': 'text/plain'})
                 return response
         except Exception as e:
-            logger.info("Caught exception!" + e)
+            logger.info("Caught exception!" + str(e))
             traceback.print_exc()
 
     @staticmethod
@@ -370,5 +370,5 @@ class Command:
                 else:
                     logger.info("This method will return NULL!")
         except Exception as e:
-            logger.info("Caught exception!" + e)
+            logger.info("Caught exception!" + str(e))
             traceback.print_exc()
