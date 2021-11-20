@@ -52,33 +52,36 @@ def shuffle(content):
         field_delimiter = content['field_delimiter']
 
         for f in Command.paths_per_file_name[file_id]["segment_list"]:
-            data_f = pd.read_parquet(os.path.join(Command.paths_per_file_name[file_id]["map_folder_name_path"],
-                                                  f, "part.0.parquet"))
+            segment_folder_path = os.path.join(Command.paths_per_file_name[file_id]["map_folder_name_path"], f)
+            for segment_file in os.listdir(segment_folder_path):
+                if os.path.splitext(segment_file)[-1] == ".parquet":
+                    data_f = pd.read_parquet(os.path.join(segment_folder_path, segment_file))
 
-            # headers = list(data_f.columns)
+                    # headers = list(data_f.columns)
 
-            for i in content['nodes_keys']:
-                index_list = []
-                for index, item in enumerate(data_f.loc[:, 'key_column']):
+                    for i in content['nodes_keys']:
+                        index_list = []
+                        for index, item in enumerate(data_f.loc[:, 'key_column']):
 
-                    min, max = i["hash_keys_range"]
-                    last_node = max == content['max_hash']
-                    hash_item = Command.hash_f(item)
-                    hash_item_in_range = min <= hash_item < max
-                    if hash_item_in_range or (hash_item == max and last_node):
-                        index_list.append(index)
+                            min, max = i["hash_keys_range"]
+                            last_node = max == content['max_hash']
+                            hash_item = Command.hash_f(item)
+                            logger.info(f"{item=}, {hash_item=}")
+                            hash_item_in_range = min <= hash_item < max
+                            if hash_item_in_range or (hash_item == max and last_node):
+                                index_list.append(index)
 
-                if i['data_node_ip'] == self_node_ip:
-                    dd.from_pandas(data_f.iloc[index_list], npartitions=1).to_parquet(full_file_path,
-                                                                                      write_index=False,
-                                                                                      engine="pyarrow"
-                                                                                      )
-                else:
-                    data = {'content': data_f.iloc[index_list].to_json(),
-                            'data_node_ip': i['data_node_ip']}
+                        if i['data_node_ip'] == self_node_ip:
+                            dd.from_pandas(data_f.iloc[index_list], npartitions=1).to_parquet(full_file_path,
+                                                                                              write_index=False,
+                                                                                              engine="pyarrow"
+                                                                                              )
+                        else:
+                            data = {'content': data_f.iloc[index_list].to_json(),
+                                    'data_node_ip': i['data_node_ip']}
 
-                    sc = ShuffleCommand(data, full_file_path, field_delimiter)
-                    sc.send()
+                            sc = ShuffleCommand(data, full_file_path, field_delimiter)
+                            sc.send()
     except Exception as e:
         logger.info("Caught exception!" + str(e))
         logger.error(e, exc_info=True)

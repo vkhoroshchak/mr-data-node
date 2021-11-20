@@ -51,7 +51,7 @@ class Command:
     def init_folder_variables(file_name, file_id):
         try:
             name, extension = os.path.splitext(file_name)
-            folder_format = name + config['name_delimiter'] + '{}' + file_id + extension
+            folder_format = name + config['name_delimiter'] + '{}_' + file_id + extension
             # Command.paths_per_file_name = {}
             Command.paths_per_file_name[file_id] = {
                 "data_folder_name_path": config['data_folder_name'] + config['name_delimiter'] + file_id,
@@ -144,11 +144,20 @@ class Command:
             hash_key_list = []
             print(Command.paths_per_file_name)
             for segment in Command.paths_per_file_name[file_id]["segment_list"]:
-                data_f = dd.read_parquet(os.path.join(Command.paths_per_file_name[file_id]["map_folder_name_path"],
-                                                      segment, "part.0.parquet"))
+                segment_folder_path = os.path.join(Command.paths_per_file_name[file_id]["map_folder_name_path"],
+                                                   segment)
+                for segment_file in os.listdir(segment_folder_path):
+                    if os.path.splitext(segment_file)[-1] == ".parquet":
+                        data_f = dd.read_parquet(os.path.join(segment_folder_path, segment_file))
+                        for j in data_f.loc["key_column"]:
+                            hash_value = Command.hash_f(j)
+                            logger.info(f"{j=}, {hash_value=}")
+                            hash_key_list.append(hash_value)
+                # data_f = dd.read_parquet(os.path.join(Command.paths_per_file_name[file_id]["map_folder_name_path"],
+                #                                       segment, "part.0.parquet"))
                 # for j in data_f.loc[:, "key_column"]:
-                for j in data_f.loc["key_column"]:
-                    hash_key_list.append(Command.hash_f(j))
+                # for j in data_f.loc["key_column"]:
+                #     hash_key_list.append(Command.hash_f(j))
 
             return hash_key_list
         except Exception as e:
@@ -189,7 +198,8 @@ class Command:
 
             exec(reducer)
 
-            destination_file_path = os.path.join(first_file_paths["data_folder_name_path"], first_file_paths["file_name"])
+            destination_file_path = os.path.join(first_file_paths["data_folder_name_path"],
+                                                 first_file_paths["file_name"])
             for shuffled_file in shuffled_files:
                 locals()['custom_reducer'](shuffled_file, destination_file_path)
         except Exception as e:
@@ -269,7 +279,8 @@ class Command:
             file_name = content['folder_name']
             remove_all = content['remove_all_data']
             file_id = content["file_id"]
-            del Command.paths_per_file_name[file_id]
+            if file_id in Command.paths_per_file_name:
+                del Command.paths_per_file_name[file_id]
             updated_config = get_updated_config()
 
             for item in updated_config['files']:
