@@ -81,4 +81,4 @@ def shuffle(content):
                     sc.send()
     except Exception as e:
         logger.info("Caught exception!" + str(e))
-        traceback.print_exc()
+        logger.error(e, exc_info=True)

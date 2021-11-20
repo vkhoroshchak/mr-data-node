@@ -27,7 +27,7 @@ async def create_config_and_filesystem(content: dict):
         return JSONResponse("Config and filesystem created!")
     except Exception as e:
         logger.info("Caught exception!" + str(e))
-        traceback.print_exc()
+        logger.error(e, exc_info=True)
 
 
 @app.post("/command/write")
@@ -37,7 +37,7 @@ async def write(content: dict):
         return JSONResponse("File segment has been written to data node!")
     except Exception as e:
         logger.info("Caught exception!" + str(e))
-        traceback.print_exc()
+        logger.error(e, exc_info=True)
 
 
 @app.post("/command/map")
@@ -47,7 +47,7 @@ async def map(content: dict):
         return JSONResponse(response)
     except Exception as e:
         logger.info("Caught exception!" + str(e))
-        traceback.print_exc()
+        logger.error(e, exc_info=True)
 
 
 @app.post("/command/shuffle")
@@ -57,7 +57,7 @@ async def shuffle(content: dict):
         return JSONResponse("Shuffle request has been received by data node!")
     except Exception as e:
         logger.info("Caught exception!" + str(e))
-        traceback.print_exc()
+        logger.error(e, exc_info=True)
 
 
 @app.post("/command/finish_shuffle")
@@ -67,7 +67,7 @@ async def finish_shuffle(content: dict):
         return JSONResponse("Finish shuffle request has been received by data node!")
     except Exception as e:
         logger.info("Caught exception!" + str(e))
-        traceback.print_exc()
+        logger.error(e, exc_info=True)
 
 
 @app.post("/command/min_max_hash")
@@ -82,7 +82,7 @@ async def min_max_hash(content: dict):
         return JSONResponse("Min max hash request has been received by data node!")
     except Exception as e:
         logger.info("Caught exception!" + str(e))
-        traceback.print_exc()
+        logger.error(e, exc_info=True)
 
 
 @app.post("/command/clear_data")
@@ -93,7 +93,7 @@ async def clear_data(content: dict):
         return JSONResponse("Clear data request has been received by data node!")
     except Exception as e:
         logger.info("Caught exception!" + str(e))
-        traceback.print_exc()
+        logger.error(e, exc_info=True)
 
 
 @app.post("/command/reduce")
@@ -104,7 +104,7 @@ async def reduce(content: dict):
         return JSONResponse("Reduce request has been received by data node!")
     except Exception as e:
         logger.info("Caught exception!" + str(e))
-        traceback.print_exc()
+        logger.error(e, exc_info=True)
 
 
 @app.post('/command/move_file_to_init_folder')
@@ -114,7 +114,7 @@ async def move_file_to_init_folder(content: dict):
         return JSONResponse("Move file to init folder request has been received by data node!")
     except Exception as e:
         logger.info("Caught exception!" + str(e))
-        traceback.print_exc()
+        logger.error(e, exc_info=True)
 
 
 @app.get('/command/check_if_file_is_on_cluster')
@@ -123,7 +123,7 @@ async def check_if_file_is_on_cluster(content: dict):
         return cmd.check_if_file_is_on_cluster(content)
     except Exception as e:
         logger.info("Caught exception!" + str(e))
-        traceback.print_exc()
+        logger.error(e, exc_info=True)
 
 
 @app.post('/command/get_file_from_cluster')
@@ -133,7 +133,7 @@ async def get_file_from_cluster(content: dict):
         return JSONResponse("Get file from cluster request has been received by data node!")
     except Exception as e:
         logger.info("Caught exception!" + str(e))
-        traceback.print_exc()
+        logger.error(e, exc_info=True)
 
 
 @app.get('/command/get_file')
@@ -145,4 +145,4 @@ async def get_file(content: dict):
         return StreamingResponse(streaming_file)
     except Exception as e:
         logger.info("Caught exception!" + str(e))
-        traceback.print_exc()
+        logger.error(e, exc_info=True)

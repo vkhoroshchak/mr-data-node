@@ -93,7 +93,7 @@ class Command:
             save_changes_to_updated_config(updated_config)
         except Exception as e:
             logger.info("Caught exception!" + str(e))
-            traceback.print_exc()
+            logger.error(e, exc_info=True)
 
     @staticmethod
     def create_folders(file_name, file_id):
@@ -113,7 +113,7 @@ class Command:
             Command.make_folder(Command.paths_per_file_name[file_id]["reduce_folder_name_path"])
         except Exception as e:
             logger.info("Caught exception!" + str(e))
-            traceback.print_exc()
+            logger.error(e, exc_info=True)
 
     @staticmethod
     def make_folder(path):
@@ -132,7 +132,7 @@ class Command:
                 f.writelines([str.encode(x) for x in items])
         except Exception as e:
             logger.info("Caught exception!" + str(e))
-            traceback.print_exc()
+            logger.error(e, exc_info=True)
 
     @staticmethod
     def hash_f(input):
@@ -153,7 +153,7 @@ class Command:
             return hash_key_list
         except Exception as e:
             logger.info("Caught exception!" + str(e))
-            traceback.print_exc()
+            logger.error(e, exc_info=True)
 
     @staticmethod
     def reduce(content):
@@ -194,7 +194,7 @@ class Command:
                 locals()['custom_reducer'](shuffled_file, destination_file_path)
         except Exception as e:
             logger.info("Caught exception!" + str(e))
-            traceback.print_exc()
+            logger.error(e, exc_info=True)
 
     @staticmethod
     def finish_shuffle(content):
@@ -216,7 +216,7 @@ class Command:
                                   )
         except Exception as e:
             logger.info("Caught exception!" + str(e))
-            traceback.print_exc()
+            logger.error(e, exc_info=True)
 
     @staticmethod
     def map(content):
@@ -240,7 +240,7 @@ class Command:
                     Command.paths_per_file_name[file_id]["segment_list"].append(f)
         except Exception as e:
             logger.info("Caught exception!" + str(e))
-            traceback.print_exc()
+            logger.error(e, exc_info=True)
 
     @staticmethod
     def min_max_hash(hash_key_list, file_id, field_delimiter):
@@ -261,7 +261,7 @@ class Command:
             return response
         except Exception as e:
             logger.info("Caught exception!" + str(e))
-            traceback.print_exc()
+            logger.error(e, exc_info=True)
 
     @staticmethod
     def clear_data(content):
@@ -285,7 +285,7 @@ class Command:
                     save_changes_to_updated_config(updated_config)
         except Exception as e:
             logger.info("Caught exception!" + str(e))
-            traceback.print_exc()
+            logger.error(e, exc_info=True)
 
     @staticmethod
     def move_file_to_init_folder(content):
@@ -297,7 +297,7 @@ class Command:
                                          os.path.basename(Command.paths_per_file_name[file_id]["file_name_path"])))
         except Exception as e:
             logger.info("Caught exception!" + str(e))
-            traceback.print_exc()
+            logger.error(e, exc_info=True)
 
     @staticmethod
     def check_if_file_is_on_cluster(content):
@@ -325,7 +325,7 @@ class Command:
                 return response
         except Exception as e:
             logger.info("Caught exception!" + str(e))
-            traceback.print_exc()
+            logger.error(e, exc_info=True)
 
     @staticmethod
     def get_file(content: dict):
@@ -371,4 +371,4 @@ class Command:
                     logger.info("This method will return NULL!")
         except Exception as e:
             logger.info("Caught exception!" + str(e))
-            traceback.print_exc()
+            logger.error(e, exc_info=True)
