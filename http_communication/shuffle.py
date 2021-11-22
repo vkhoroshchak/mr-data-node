@@ -21,19 +21,21 @@ with open(os.path.join('config', 'data_node_info.json')) as arbiter_node_json_da
 
 
 class ShuffleCommand:
-    def __init__(self, data, file_path, field_delimiter):
+    def __init__(self, data, file_path, field_delimiter, distribution):
         self._data = {
             'data_node_ip': data['data_node_ip'],
             'content': data['content'],
             'file_path': file_path,
-            'field_delimiter': field_delimiter
+            'field_delimiter': field_delimiter,
+            'distribution': distribution
         }
 
     def send(self):
         data = {
             'content': self._data['content'],
             'file_path': self._data['file_path'],
-            'field_delimiter': self._data['field_delimiter']
+            'field_delimiter': self._data['field_delimiter'],
+            'distribution': self._data['distribution']
         }
         url = f'http://{self._data["data_node_ip"]}/command/finish_shuffle'
         try:
@@ -50,6 +52,7 @@ def shuffle(content):
         file_id = content["file_id"]
         full_file_path = os.path.join(Command.paths_per_file_name[file_id]["shuffle_folder_name_path"], 'shuffled.csv')
         field_delimiter = content['field_delimiter']
+        distribution = content['distribution']
 
         for f in Command.paths_per_file_name[file_id]["segment_list"]:
             segment_folder_path = os.path.join(Command.paths_per_file_name[file_id]["map_folder_name_path"], f)
@@ -71,17 +74,27 @@ def shuffle(content):
                             if hash_item_in_range or (hash_item == max and last_node):
                                 index_list.append(index)
 
-                        if i['data_node_ip'] == self_node_ip:
-                            dd.from_pandas(data_f.iloc[index_list], npartitions=1).to_parquet(full_file_path,
-                                                                                              write_index=False,
-                                                                                              engine="pyarrow"
-                                                                                              )
-                        else:
-                            data = {'content': data_f.iloc[index_list].to_json(),
-                                    'data_node_ip': i['data_node_ip']}
+                        if index_list:
+                            logger.info(f"{index_list=}, {data_f.iloc[index_list].to_json()=}, {i['data_node_ip']=}")
+                            if i['data_node_ip'] == self_node_ip:
+                                # dd.from_pandas(data_f.iloc[index_list], npartitions=1).to_parquet(full_file_path,
+                                dd.from_pandas(data_f.iloc[index_list], chunksize=distribution).to_parquet(
+                                    full_file_path,
+                                    write_index=False,
+                                    engine="pyarrow",
+                                    append=True
+                                )
+                            else:
+                                data = {
+                                    'content': data_f.iloc[index_list].to_json(),
+                                    'data_node_ip': i['data_node_ip'],
+                                    'distribution': distribution
+                                }
 
-                            sc = ShuffleCommand(data, full_file_path, field_delimiter)
-                            sc.send()
+                                sc = ShuffleCommand(data, full_file_path, field_delimiter, distribution=distribution)
+                                sc.send()
+                        else:
+                            logger.info("index_list is empty!")
     except Exception as e:
         logger.info("Caught exception!" + str(e))
         logger.error(e, exc_info=True)

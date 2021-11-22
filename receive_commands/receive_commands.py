@@ -1,5 +1,6 @@
 import base64
 import dask.dataframe as dd
+import hashlib
 import json
 import os
 import pandas as pd
@@ -136,7 +137,15 @@ class Command:
 
     @staticmethod
     def hash_f(input):
-        return hash(input)
+        try:
+            input_hash = hashlib.md5()
+            input_hash.update(input.encode("utf-8"))
+            input_hash_hex = input_hash.hexdigest()
+            input_hash_dec = int(input_hash_hex, 16)
+            return input_hash_dec
+        except Exception as e:
+            logger.info("Caught exception!" + str(e))
+            logger.error(e, exc_info=True)
 
     @staticmethod
     def hash_keys(field_delimiter, file_id):
@@ -149,9 +158,9 @@ class Command:
                 for segment_file in os.listdir(segment_folder_path):
                     if os.path.splitext(segment_file)[-1] == ".parquet":
                         data_f = dd.read_parquet(os.path.join(segment_folder_path, segment_file))
-                        for j in data_f.loc["key_column"]:
+                        for i, j in enumerate(data_f.loc[:, "key_column"]):
                             hash_value = Command.hash_f(j)
-                            logger.info(f"{j=}, {hash_value=}")
+                            logger.info(f"{i=}, {j=}, {hash_value=}")
                             hash_key_list.append(hash_value)
                 # data_f = dd.read_parquet(os.path.join(Command.paths_per_file_name[file_id]["map_folder_name_path"],
                 #                                       segment, "part.0.parquet"))
@@ -211,13 +220,15 @@ class Command:
         try:
             # cols = list(pd.read_json(content['content']).columns)
             # field_delimiter = content['field_delimiter']
-
+            logger.info(f"{content=}")
             data_frame = pd.read_json(content['content'])
-            data_frame = dd.from_pandas(data_frame, npartitions=2)
+            # data_frame = dd.from_pandas(data_frame, npartitions=2)
+            data_frame = dd.from_pandas(data_frame, chunksize=content['distribution'])
             if not os.path.isfile(content['file_path']):
                 data_frame.to_parquet(content['file_path'],
                                       write_index=False,
                                       engine="pyarrow",
+                                      append=True
                                       )
             else:
                 data_frame.to_csv(content['file_path'],
@@ -246,7 +257,9 @@ class Command:
                     #            index=False, mode="w", sep=field_delimiter, single_file=True)
                     res.to_parquet(f"{Command.paths_per_file_name[file_id]['map_folder_name_path']}{os.sep}{f}",
                                    write_index=False,
-                                   engine="pyarrow")
+                                   engine="pyarrow",
+                                   append=True
+                                   )
                     Command.paths_per_file_name[file_id]["segment_list"].append(f)
         except Exception as e:
             logger.info("Caught exception!" + str(e))
