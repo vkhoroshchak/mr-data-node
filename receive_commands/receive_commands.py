@@ -139,7 +139,7 @@ class Command:
     def hash_f(input):
         try:
             input_hash = hashlib.md5()
-            input_hash.update(input.encode("utf-8"))
+            input_hash.update(str(input).encode("utf-8"))
             input_hash_hex = input_hash.hexdigest()
             input_hash_dec = int(input_hash_hex, 16)
             return input_hash_dec
