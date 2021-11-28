@@ -30,7 +30,7 @@ class ShuffleCommand:
             'distribution': distribution
         }
 
-    def send(self):
+    async def send(self):
         data = {
             'content': self._data['content'],
             'file_path': self._data['file_path'],
@@ -47,12 +47,13 @@ class ShuffleCommand:
             pass
 
 
-def shuffle(content):
+async def shuffle(content):
     try:
         file_id = content["file_id"]
         full_file_path = os.path.join(Command.paths_per_file_name[file_id]["shuffle_folder_name_path"], 'shuffled.csv')
         field_delimiter = content['field_delimiter']
         distribution = content['distribution']
+        response = {}
 
         for f in Command.paths_per_file_name[file_id]["segment_list"]:
             segment_folder_path = os.path.join(Command.paths_per_file_name[file_id]["map_folder_name_path"], f)
@@ -88,13 +89,27 @@ def shuffle(content):
                                 data = {
                                     'content': data_f.iloc[index_list].to_json(),
                                     'data_node_ip': i['data_node_ip'],
-                                    'distribution': distribution
+                                    'distribution': distribution,
+                                    "file_path": full_file_path,
+                                    "field_delimiter": field_delimiter,
+                                    "self_node_ip": self_node_ip
                                 }
 
-                                sc = ShuffleCommand(data, full_file_path, field_delimiter, distribution=distribution)
-                                sc.send()
+                                # resp = {
+                                #     "data": data,
+                                #     "full_file_path": full_file_path,
+                                #     "field_delimiter": field_delimiter,
+                                #     "self_node_ip": self_node_ip
+                                # }
+                                response[i['data_node_ip']] = response.setdefault(i['data_node_ip'], [])
+                                response[i['data_node_ip']].append(data)
+                                # return response
+
+                                # sc = ShuffleCommand(data, full_file_path, field_delimiter, distribution=distribution)
+                                # await sc.send()
                         else:
                             logger.info("index_list is empty!")
+        return response
     except Exception as e:
         logger.info("Caught exception!" + str(e))
         logger.error(e, exc_info=True)
