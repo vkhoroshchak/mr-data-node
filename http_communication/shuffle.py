@@ -3,7 +3,6 @@ import json
 import os
 import pandas as pd
 import requests
-import traceback
 
 from config.logger import data_node_logger
 from receive_commands.receive_commands import Command
@@ -47,7 +46,7 @@ class ShuffleCommand:
             pass
 
 
-async def shuffle(content):
+async def shuffle(content):  # noqa: C901
     try:
         file_id = content["file_id"]
         full_file_path = os.path.join(Command.paths_per_file_name[file_id]["shuffle_folder_name_path"], 'shuffled.csv')

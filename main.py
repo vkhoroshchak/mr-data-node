@@ -1,6 +1,5 @@
 import json
 import os
-import traceback
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import JSONResponse, StreamingResponse
 
