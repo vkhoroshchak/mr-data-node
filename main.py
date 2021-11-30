@@ -1,6 +1,5 @@
 import json
 import os
-import traceback
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import JSONResponse, StreamingResponse
 
@@ -53,8 +52,9 @@ async def map(content: dict):
 @app.post("/command/shuffle")
 async def shuffle(content: dict):
     try:
-        sf.shuffle(content)
-        return JSONResponse("Shuffle request has been received by data node!")
+        response = await sf.shuffle(content)
+        return response
+        # return JSONResponse("Shuffle request has been received by data node!")
     except Exception as e:
         logger.info("Caught exception!" + str(e))
         logger.error(e, exc_info=True)
@@ -63,7 +63,7 @@ async def shuffle(content: dict):
 @app.post("/command/finish_shuffle")
 async def finish_shuffle(content: dict):
     try:
-        cmd.finish_shuffle(content)
+        await cmd.finish_shuffle(content)
         return JSONResponse("Finish shuffle request has been received by data node!")
     except Exception as e:
         logger.info("Caught exception!" + str(e))
@@ -76,10 +76,20 @@ async def min_max_hash(content: dict):
         field_delimiter = content['field_delimiter']
         file_id = str(content["file_id"])
         # data_nodes = content["data_nodes"]
-
-        cmd.min_max_hash(cmd.hash_keys(field_delimiter, file_id), file_id, field_delimiter)
-
-        return JSONResponse("Min max hash request has been received by data node!")
+        hash_key_list = await cmd.hash_keys(field_delimiter, file_id)
+        # logger.info(f"{hash_key_list=}")
+        response = {
+            'min_hash_value': min(hash_key_list),
+            'max_hash_value': max(hash_key_list),
+            'file_id': file_id,
+        }
+        logger.info(f"{response=}")
+        return response
+        # resp = await cmd.min_max_hash(hash_key_list, file_id, field_delimiter)
+        # logger.info(str(resp))
+        #
+        # return JSONResponse("Min max hash request has been received by data node!")
+        # return resp
     except Exception as e:
         logger.info("Caught exception!" + str(e))
         logger.error(e, exc_info=True)

@@ -1,12 +1,13 @@
 import base64
 import dask.dataframe as dd
+import hashlib
 import json
 import os
 import pandas as pd
 import requests
 import shutil
 import tempfile
-import traceback
+from fastapi import HTTPException
 from pathlib import Path
 
 from config.logger import data_node_logger
@@ -127,19 +128,31 @@ class Command:
             file_id = content["file_id"]
             path = os.path.join(Command.paths_per_file_name[file_id]["init_folder_name_path"], file_name)
             with open(path, 'wb+') as f:
-                f.write(str.encode(content["segment"]["headers"]))
+                # try:
+                #     f.write(str.encode(content["segment"]["headers"]))
+                # except Exception as e:
+                f.write(str.encode(",".join(content["segment"]["headers"]) + "\n"))
                 items = json.loads(content['segment']["items"])
-                f.writelines([str.encode(x) for x in items])
+                # f.writelines([str.encode(x) for x in items])
+                f.writelines([str.encode(",".join(x) + "\n") for x in items])
         except Exception as e:
             logger.info("Caught exception!" + str(e))
             logger.error(e, exc_info=True)
 
     @staticmethod
     def hash_f(input):
-        return hash(input)
+        try:
+            input_hash = hashlib.md5()
+            input_hash.update(str(input).encode("utf-8"))
+            input_hash_hex = input_hash.hexdigest()
+            input_hash_dec = int(input_hash_hex, 16)
+            return input_hash_dec
+        except Exception as e:
+            logger.info("Caught exception!" + str(e))
+            logger.error(e, exc_info=True)
 
     @staticmethod
-    def hash_keys(field_delimiter, file_id):
+    async def hash_keys(field_delimiter, file_id):
         try:
             hash_key_list = []
             print(Command.paths_per_file_name)
@@ -149,9 +162,9 @@ class Command:
                 for segment_file in os.listdir(segment_folder_path):
                     if os.path.splitext(segment_file)[-1] == ".parquet":
                         data_f = dd.read_parquet(os.path.join(segment_folder_path, segment_file))
-                        for j in data_f.loc["key_column"]:
+                        for i, j in enumerate(data_f.loc[:, "key_column"]):
                             hash_value = Command.hash_f(j)
-                            logger.info(f"{j=}, {hash_value=}")
+                            # logger.info(f"{i=}, {j=}, {hash_value=}")
                             hash_key_list.append(hash_value)
                 # data_f = dd.read_parquet(os.path.join(Command.paths_per_file_name[file_id]["map_folder_name_path"],
                 #                                       segment, "part.0.parquet"))
@@ -200,30 +213,35 @@ class Command:
 
             destination_file_path = os.path.join(first_file_paths["data_folder_name_path"],
                                                  first_file_paths["file_name"])
-            for shuffled_file in shuffled_files:
-                locals()['custom_reducer'](shuffled_file, destination_file_path)
+            # logger.info(f"{shuffled_files=}, {first_file_paths=}, {destination_file_path=}")
+            for index, shuffled_file in enumerate(shuffled_files):
+                # logger.info(f"{index=}, {shuffled_file=}, {destination_file_path=}")
+                locals()['custom_reducer'](shuffled_file, destination_file_path, index == 0)
         except Exception as e:
             logger.info("Caught exception!" + str(e))
             logger.error(e, exc_info=True)
 
     @staticmethod
-    def finish_shuffle(content):
+    async def finish_shuffle(content):
         try:
             # cols = list(pd.read_json(content['content']).columns)
             # field_delimiter = content['field_delimiter']
-
-            data_frame = pd.read_json(content['content'])
-            data_frame = dd.from_pandas(data_frame, npartitions=2)
-            if not os.path.isfile(content['file_path']):
-                data_frame.to_parquet(content['file_path'],
+            # logger.info(f"{content=}")
+            for i in content["data_to_data_node"]:
+                data_frame = pd.read_json(i['content'])
+                # data_frame = dd.from_pandas(data_frame, npartitions=2)
+                data_frame = dd.from_pandas(data_frame, chunksize=i['distribution'])
+                if not os.path.isfile(i['file_path']):
+                    data_frame.to_parquet(i['file_path'],
+                                          write_index=False,
+                                          engine="pyarrow",
+                                          append=True
+                                          )
+                else:
+                    data_frame.to_csv(i['file_path'],
                                       write_index=False,
                                       engine="pyarrow",
                                       )
-            else:
-                data_frame.to_csv(content['file_path'],
-                                  write_index=False,
-                                  engine="pyarrow",
-                                  )
         except Exception as e:
             logger.info("Caught exception!" + str(e))
             logger.error(e, exc_info=True)
@@ -246,14 +264,16 @@ class Command:
                     #            index=False, mode="w", sep=field_delimiter, single_file=True)
                     res.to_parquet(f"{Command.paths_per_file_name[file_id]['map_folder_name_path']}{os.sep}{f}",
                                    write_index=False,
-                                   engine="pyarrow")
+                                   engine="pyarrow",
+                                   append=True
+                                   )
                     Command.paths_per_file_name[file_id]["segment_list"].append(f)
         except Exception as e:
             logger.info("Caught exception!" + str(e))
             logger.error(e, exc_info=True)
 
     @staticmethod
-    def min_max_hash(hash_key_list, file_id, field_delimiter):
+    async def min_max_hash(hash_key_list, file_id, field_delimiter):
         try:
             with open(os.path.join('config', 'data_node_info.json')) as f:
                 arbiter_address = json.load(f)['arbiter_address']
@@ -343,31 +363,45 @@ class Command:
         try:
             file_name = content['file_name']
             file_id = content['file_id']
-            file_name_path = os.path.join(Command.paths_per_file_name[file_id]["data_folder_name_path"], file_name)
+            try:
+                file_name_path = os.path.join(Command.paths_per_file_name[file_id]["data_folder_name_path"], file_name)
+            except KeyError:
+                raise HTTPException(status_code=404, detail="File not found!")
             logger.info(f"{file_name_path=}")
             logger.info(f"Searching for file_name_path: {os.path.exists(file_name_path)}")
 
             if os.path.exists(file_name_path):
                 # get file after MR has been done
-                logger.info(f"os.listdir(file_name_path) = {os.listdir(file_name_path)}")
-                segments = [f for f in os.listdir(file_name_path) if os.path.splitext(f)[-1] == ".part"]
-                for f in segments:
-                    segment_path = str(os.path.abspath(os.path.join(file_name_path, f)))
-                    with tempfile.TemporaryDirectory() as tmp:
-                        df = dd.read_csv(segment_path)
-                        csv_path = os.path.join(tmp, f'{file_name}')
-                        df.to_csv(csv_path, single_file=True, index=False)
-                        with open(csv_path, "rb") as csv_file:
-                            # yield csv_file.read()
-                            yield from csv_file
-                            # return csv_file.read()
+                # with open(file_name_path, "rb") as csv_file:
+                #     yield csv_file.read()
+                # logger.info(f"os.listdir(file_name_path) = {os.listdir(file_name_path)}")
+                # segments = [f for f in os.listdir(file_name_path) if os.path.splitext(f)[-1] == ".part"]
+                with tempfile.TemporaryDirectory() as tmp:
+                    df = dd.read_csv(os.path.join(file_name_path, "part.*.csv"))
+                    csv_path = os.path.join(tmp, f'{file_name}')
+                    df.to_csv(csv_path, single_file=True, index=False)
+                    with open(csv_path, "rb") as csv_file:
+                        # yield csv_file.read()
+                        yield from csv_file
+                        # return csv_file.read()
+                # segments = [f for f in os.listdir(file_name_path)]
+                # for f in segments:
+                #     segment_path = str(os.path.abspath(os.path.join(file_name_path, f)))
+                #     with tempfile.TemporaryDirectory() as tmp:
+                #         df = dd.read_csv(segment_path)
+                #         csv_path = os.path.join(tmp, f'{file_name}')
+                #         df.to_csv(csv_path, single_file=True, index=False)
+                #         with open(csv_path, "rb") as csv_file:
+                #             # yield csv_file.read()
+                #             yield from csv_file
+                #             # return csv_file.read()
             else:
                 # get file that has only been pushed on cluster
                 init_folder_name_path = Command.paths_per_file_name[file_id]["init_folder_name_path"]
                 logger.info(f"{init_folder_name_path=}")
                 logger.info(f"Searching for init_folder_name_path: {os.path.exists(init_folder_name_path)}")
                 if os.path.exists(init_folder_name_path):
-                    logger.info(f"os.listdir(init_folder_name_path) = {os.listdir(init_folder_name_path)}")
+                    # logger.info(f"os.listdir(init_folder_name_path) = {os.listdir(init_folder_name_path)}")
                     for f in os.listdir(init_folder_name_path):
                         segment_path = str(os.path.abspath(os.path.join(init_folder_name_path, f)))
                         with tempfile.TemporaryDirectory() as tmp:
