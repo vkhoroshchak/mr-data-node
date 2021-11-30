@@ -1,81 +1,158 @@
-from receive_commands.receive_commands import Command as cmd
-from http_communication import shuffle as sf
-from flask import Flask, jsonify, request
 import json
 import os
+from fastapi import FastAPI, HTTPException
+from fastapi.responses import JSONResponse, StreamingResponse
+
+from config.logger import data_node_logger
+from http_communication import shuffle as sf
+from receive_commands.receive_commands import Command as cmd
+
+logger = data_node_logger.get_logger(__name__)
+
+app = FastAPI()
 
 with open(os.path.join(os.path.dirname(__file__), "config", "config.json")) as config_file:
     config = json.load(config_file)
 
-app = Flask(__name__)
+
+@app.post("/command/create_config_and_filesystem")
+async def create_config_and_filesystem(content: dict):
+    try:
+        # file_name = request.json["file_name"]
+        file_name = content.get("file_name", "")
+        file_id = content.get("file_id", "")
+        cmd.init_folder_variables(file_name, file_id)
+        cmd.create_folders(file_name, file_id)
+        return JSONResponse("Config and filesystem created!")
+    except Exception as e:
+        logger.info("Caught exception!" + str(e))
+        logger.error(e, exc_info=True)
 
 
-@app.route("/command/create_config_and_filesystem", methods=["POST"])
-def create_config_and_filesystem():
-    file_name = request.json["file_name"]
-    cmd.init_folder_variables(file_name)
-    cmd.create_folders()
-    return jsonify(success=True)
+@app.post("/command/write")
+async def write(content: dict):
+    try:
+        cmd.write(content)
+        return JSONResponse("File segment has been written to data node!")
+    except Exception as e:
+        logger.info("Caught exception!" + str(e))
+        logger.error(e, exc_info=True)
 
 
-@app.route("/command/write", methods=["POST"])
-def write():
-    cmd.write(request.json)
-    return jsonify(success=True)
+@app.post("/command/map")
+async def map(content: dict):
+    try:
+        response = {'mapped_folder_name': cmd.map(content)}
+        return JSONResponse(response)
+    except Exception as e:
+        logger.info("Caught exception!" + str(e))
+        logger.error(e, exc_info=True)
 
 
-@app.route("/command/map", methods=["POST"])
-def map():
-    response = {'mapped_folder_name': cmd.map(request.json)}
-    return jsonify(response)
+@app.post("/command/shuffle")
+async def shuffle(content: dict):
+    try:
+        response = await sf.shuffle(content)
+        return response
+        # return JSONResponse("Shuffle request has been received by data node!")
+    except Exception as e:
+        logger.info("Caught exception!" + str(e))
+        logger.error(e, exc_info=True)
 
 
-@app.route("/command/shuffle", methods=["POST"])
-def shuffle():
-    sf.shuffle(request.json)
-    return jsonify(success=True)
+@app.post("/command/finish_shuffle")
+async def finish_shuffle(content: dict):
+    try:
+        await cmd.finish_shuffle(content)
+        return JSONResponse("Finish shuffle request has been received by data node!")
+    except Exception as e:
+        logger.info("Caught exception!" + str(e))
+        logger.error(e, exc_info=True)
 
 
-@app.route("/command/finish_shuffle", methods=["POST"])
-def finish_shuffle():
-    cmd.finish_shuffle(request.json)
-    return jsonify(success=True)
+@app.post("/command/min_max_hash")
+async def min_max_hash(content: dict):
+    try:
+        field_delimiter = content['field_delimiter']
+        file_id = str(content["file_id"])
+        # data_nodes = content["data_nodes"]
+        hash_key_list = await cmd.hash_keys(field_delimiter, file_id)
+        # logger.info(f"{hash_key_list=}")
+        response = {
+            'min_hash_value': min(hash_key_list),
+            'max_hash_value': max(hash_key_list),
+            'file_id': file_id,
+        }
+        logger.info(f"{response=}")
+        return response
+        # resp = await cmd.min_max_hash(hash_key_list, file_id, field_delimiter)
+        # logger.info(str(resp))
+        #
+        # return JSONResponse("Min max hash request has been received by data node!")
+        # return resp
+    except Exception as e:
+        logger.info("Caught exception!" + str(e))
+        logger.error(e, exc_info=True)
 
 
-@app.route("/command/min_max_hash", methods=["POST"])
-def min_max_hash():
-    field_delimiter = request.json['field_delimiter']
+@app.post("/command/clear_data")
+async def clear_data(content: dict):
+    try:
+        cmd.clear_data(content)
 
-    cmd.min_max_hash(cmd.hash_keys(field_delimiter), cmd.map_folder_name_path, field_delimiter)
-
-    return jsonify(success=True)
-
-
-@app.route("/command/clear_data", methods=["POST"])
-def clear_data():
-    cmd.clear_data(request.json)
-
-    return jsonify(success=True)
+        return JSONResponse("Clear data request has been received by data node!")
+    except Exception as e:
+        logger.info("Caught exception!" + str(e))
+        logger.error(e, exc_info=True)
 
 
-@app.route("/command/reduce", methods=["POST"])
-def reduce():
-    cmd.reduce(request.json)
+@app.post("/command/reduce")
+async def reduce(content: dict):
+    try:
+        cmd.reduce(content)
 
-    return jsonify(success=True)
-
-
-@app.route('/command/move_file_to_init_folder', methods=['POST'])
-def move_file_to_init_folder():
-    cmd.move_file_to_init_folder(request.json)
-    return jsonify(success=True)
+        return JSONResponse("Reduce request has been received by data node!")
+    except Exception as e:
+        logger.info("Caught exception!" + str(e))
+        logger.error(e, exc_info=True)
 
 
-@app.route('/command/get_file_from_cluster', methods=['POST'])
-def get_file_from_cluster():
-    cmd.get_file_from_cluster(request.json)
-    return jsonify(success=True)
+@app.post('/command/move_file_to_init_folder')
+async def move_file_to_init_folder(content: dict):
+    try:
+        cmd.move_file_to_init_folder(content)
+        return JSONResponse("Move file to init folder request has been received by data node!")
+    except Exception as e:
+        logger.info("Caught exception!" + str(e))
+        logger.error(e, exc_info=True)
 
 
-if __name__ == "__main__":
-    app.run(host="127.0.0.1", port=5002, debug=True, use_reloader=False)
+@app.get('/command/check_if_file_is_on_cluster')
+async def check_if_file_is_on_cluster(content: dict):
+    try:
+        return cmd.check_if_file_is_on_cluster(content)
+    except Exception as e:
+        logger.info("Caught exception!" + str(e))
+        logger.error(e, exc_info=True)
+
+
+@app.post('/command/get_file_from_cluster')
+async def get_file_from_cluster(content: dict):
+    try:
+        cmd.get_file_from_cluster(content)
+        return JSONResponse("Get file from cluster request has been received by data node!")
+    except Exception as e:
+        logger.info("Caught exception!" + str(e))
+        logger.error(e, exc_info=True)
+
+
+@app.get('/command/get_file')
+async def get_file(content: dict):
+    try:
+        streaming_file = cmd.get_file(content)
+        if not streaming_file:
+            raise HTTPException(status_code=404, detail="File not found!")
+        return StreamingResponse(streaming_file)
+    except Exception as e:
+        logger.info("Caught exception!" + str(e))
+        logger.error(e, exc_info=True)
