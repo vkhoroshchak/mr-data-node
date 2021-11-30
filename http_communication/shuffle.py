@@ -38,7 +38,7 @@ class ShuffleCommand:
         }
         url = f'http://{self._data["data_node_ip"]}/command/finish_shuffle'
         try:
-            response = requests.post(url, json=data, timeout=10)
+            response = requests.post(url, json=data, timeout=100)
             return response
         except requests.exceptions.ReadTimeout:
             pass
@@ -69,13 +69,13 @@ async def shuffle(content):  # noqa: C901
                             min, max = i["hash_keys_range"]
                             last_node = max == content['max_hash']
                             hash_item = Command.hash_f(item)
-                            logger.info(f"{item=}, {hash_item=}")
+                            # logger.info(f"{item=}, {hash_item=}")
                             hash_item_in_range = min <= hash_item < max
                             if hash_item_in_range or (hash_item == max and last_node):
                                 index_list.append(index)
 
                         if index_list:
-                            logger.info(f"{index_list=}, {data_f.iloc[index_list].to_json()=}, {i['data_node_ip']=}")
+                            # logger.info(f"{index_list=}, {data_f.iloc[index_list].to_json()=}, {i['data_node_ip']=}")
                             if i['data_node_ip'] == self_node_ip:
                                 # dd.from_pandas(data_f.iloc[index_list], npartitions=1).to_parquet(full_file_path,
                                 dd.from_pandas(data_f.iloc[index_list], chunksize=distribution).to_parquet(

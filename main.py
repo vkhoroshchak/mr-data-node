@@ -77,7 +77,7 @@ async def min_max_hash(content: dict):
         file_id = str(content["file_id"])
         # data_nodes = content["data_nodes"]
         hash_key_list = await cmd.hash_keys(field_delimiter, file_id)
-        logger.info(f"{hash_key_list=}")
+        # logger.info(f"{hash_key_list=}")
         response = {
             'min_hash_value': min(hash_key_list),
             'max_hash_value': max(hash_key_list),

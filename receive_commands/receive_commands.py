@@ -128,9 +128,13 @@ class Command:
             file_id = content["file_id"]
             path = os.path.join(Command.paths_per_file_name[file_id]["init_folder_name_path"], file_name)
             with open(path, 'wb+') as f:
-                f.write(str.encode(content["segment"]["headers"]))
+                # try:
+                #     f.write(str.encode(content["segment"]["headers"]))
+                # except Exception as e:
+                f.write(str.encode(",".join(content["segment"]["headers"]) + "\n"))
                 items = json.loads(content['segment']["items"])
-                f.writelines([str.encode(x) for x in items])
+                # f.writelines([str.encode(x) for x in items])
+                f.writelines([str.encode(",".join(x) + "\n") for x in items])
         except Exception as e:
             logger.info("Caught exception!" + str(e))
             logger.error(e, exc_info=True)
@@ -160,7 +164,7 @@ class Command:
                         data_f = dd.read_parquet(os.path.join(segment_folder_path, segment_file))
                         for i, j in enumerate(data_f.loc[:, "key_column"]):
                             hash_value = Command.hash_f(j)
-                            logger.info(f"{i=}, {j=}, {hash_value=}")
+                            # logger.info(f"{i=}, {j=}, {hash_value=}")
                             hash_key_list.append(hash_value)
                 # data_f = dd.read_parquet(os.path.join(Command.paths_per_file_name[file_id]["map_folder_name_path"],
                 #                                       segment, "part.0.parquet"))
@@ -209,9 +213,9 @@ class Command:
 
             destination_file_path = os.path.join(first_file_paths["data_folder_name_path"],
                                                  first_file_paths["file_name"])
-            logger.info(f"{shuffled_files=}, {first_file_paths=}, {destination_file_path=}")
+            # logger.info(f"{shuffled_files=}, {first_file_paths=}, {destination_file_path=}")
             for index, shuffled_file in enumerate(shuffled_files):
-                logger.info(f"{index=}, {shuffled_file=}, {destination_file_path=}")
+                # logger.info(f"{index=}, {shuffled_file=}, {destination_file_path=}")
                 locals()['custom_reducer'](shuffled_file, destination_file_path, index == 0)
         except Exception as e:
             logger.info("Caught exception!" + str(e))
@@ -222,7 +226,7 @@ class Command:
         try:
             # cols = list(pd.read_json(content['content']).columns)
             # field_delimiter = content['field_delimiter']
-            logger.info(f"{content=}")
+            # logger.info(f"{content=}")
             for i in content["data_to_data_node"]:
                 data_frame = pd.read_json(i['content'])
                 # data_frame = dd.from_pandas(data_frame, npartitions=2)
@@ -370,7 +374,7 @@ class Command:
                 # get file after MR has been done
                 # with open(file_name_path, "rb") as csv_file:
                 #     yield csv_file.read()
-                logger.info(f"os.listdir(file_name_path) = {os.listdir(file_name_path)}")
+                # logger.info(f"os.listdir(file_name_path) = {os.listdir(file_name_path)}")
                 # segments = [f for f in os.listdir(file_name_path) if os.path.splitext(f)[-1] == ".part"]
                 with tempfile.TemporaryDirectory() as tmp:
                     df = dd.read_csv(os.path.join(file_name_path, "part.*.csv"))
@@ -397,7 +401,7 @@ class Command:
                 logger.info(f"{init_folder_name_path=}")
                 logger.info(f"Searching for init_folder_name_path: {os.path.exists(init_folder_name_path)}")
                 if os.path.exists(init_folder_name_path):
-                    logger.info(f"os.listdir(init_folder_name_path) = {os.listdir(init_folder_name_path)}")
+                    # logger.info(f"os.listdir(init_folder_name_path) = {os.listdir(init_folder_name_path)}")
                     for f in os.listdir(init_folder_name_path):
                         segment_path = str(os.path.abspath(os.path.join(init_folder_name_path, f)))
                         with tempfile.TemporaryDirectory() as tmp:
