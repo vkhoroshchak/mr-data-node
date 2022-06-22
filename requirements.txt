@@ -14,7 +14,7 @@ locket==0.2.1
 MarkupSafe==1.1.1
 mo-future==3.51.20059
 moz-sql-parser==3.32.20026
-numpy==1.20.2
+numpy==1.22.0
 pandas==1.2.4
 partd==1.2.0
 pyarrow==4.0.0
